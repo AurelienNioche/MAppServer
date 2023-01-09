@@ -48,55 +48,13 @@ OR if you don't want/need a background service:
     pg_ctl -D /usr/local/var/postgres start
 
 
-#### PostgreSQL (GNU/Linux)
-
-(Skip this if you are on MacOS)
-Install postgresql
-
-For Arch: https://wiki.archlinux.org/index.php/PostgreSQL
-
-Make sure:
-- you run commands starting with "$" as your normal/super user
- - you run commands starting by "[postgres]" as postgres
-
-Switch to the user 'postgres':
-
-    $ sudo -iu postgres
-    
-Switch bak
-
-    postgres:$ exit
-
-Initialize the database:
-
-    postgres:$ initdb -D /var/lib/postgres/data
-
-Start the postgresql service:
-
-    $ systemctl start postgresql.service
-
-(Optional) Enable the postgresql service:
-
-    $ systemctl enable postgresql.service
-
-
 ## Configuration
-
-#### PostgreSQL
-
-Create user 'postgres' if it doesn't exist
-    
-    createuser postgres
-
-Create a database named 'ActiveTeachingServer'
-
-    createdb ActiveTeachingServer --owner postgres
 
 #### Django
 
-Move to the directory containing this script
+Move to the directory where are the settings
 
-    cd <path to the parent folder>/ActiveTeachingServer
+    cd <path to the parent folder>/MAppServer
     
 Create a "credential.py" script
 
@@ -113,21 +71,17 @@ It should look like:
     EMAIL_HOST_USER = ''
     EMAIL_HOST_PASSWORD = ''
 
-Prepare the DB (make migrations and migrate)
 
-    python3 manage.py makemigrations
-    python3 manage.py migrate
+#### PostgreSQL
 
-Create superuser in order to have access to admin interface
-
-    python3 manage.py createsuperuser
-
+Create user 'postgres' if it doesn't exist
     
-#### Import user data
+    createuser -s postgres
 
-Load sql backup of the tables containing user data
+Run the script to create the database
 
-    python3 db_load_user_data.py
+    python3 db_create_db.py
+
    
 ## Run
 
@@ -137,32 +91,15 @@ Run Django server using the Django command
 
 ## Extra information
 
-#### Load specific session
 
-Run:
-
-    python3 db_load_xp_session.py
-
-
-#### Load experimental session
-
-To make a backup of the user data, run:
-
-    python3 db_backup_user_data.py
-
-To *delete* the user data on the db and load the ones from the backup, run:
- 
-    python3 db_load_user_data.py
-
-
-#### Manipulations of DB
+### Manipulations of DB
 
 Remove the db
     
     dropdb <db name>
 
 
-### Server Deployment
+## Server Deployment
 
 * Clone repository in `<dedicated folder>`
 

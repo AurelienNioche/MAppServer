@@ -1,8 +1,6 @@
 from django.utils import timezone
 
 from user.models import User
-from user.models.question import Question
-from user.models.session import Session
 from user.authentication import login
 
 

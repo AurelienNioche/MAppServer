@@ -30,17 +30,17 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
+    "localhost",
 ]
 
 # Application definition
 
 INSTALLED_APPS = [
-    'experimental_condition.apps.ExperimentalConditionConfig',
-    'teaching.apps.TeachingConfig',
+    'interaction.apps.InteractionConfig',
     'user.apps.UserConfig',
-    'teaching_material.apps.TeachingMaterialConfig',
     'reception_desk.apps.TaskConfig',
     'channels',
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -77,8 +77,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = 'MAppServer.wsgi.application'
 
 DATABASES = {
     'default': {
@@ -131,9 +129,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
-
-# Channels
-ASGI_APPLICATION = 'MAppServer.routing.application'
+ASGI_APPLICATION = 'MAppServer.asgi.application'
 
 AUTH_USER_MODEL = 'user.User'
 
@@ -160,13 +156,13 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'django-debug.log'),   # os.path.join('tmp', 'django-debug.log'),
+            'filename': os.path.join(BASE_DIR, 'django-debug.log'),
             'formatter': 'verbose'
         },
         'file_error': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'django-error.log'),  # os.path.join('tmp', 'django-error.log'),
+            'filename': os.path.join(BASE_DIR, 'django-error.log'),
             'formatter': 'verbose'
         },
     },
@@ -183,6 +179,8 @@ LOGGING = {
         },
     }
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # os.makedirs('tmp', exist_ok=True)
 #
