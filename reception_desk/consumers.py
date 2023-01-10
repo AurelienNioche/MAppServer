@@ -7,9 +7,6 @@ from . reception_desk import treat_request
 class WebSocketConsumer(WebsocketConsumer):
 
     def connect(self):
-
-        print("Connecting")
-
         self.accept()
 
     def disconnect(self, close_code):
@@ -25,9 +22,14 @@ class WebSocketConsumer(WebsocketConsumer):
         else:
             raise ValueError
 
-        text_data_json = json.loads(text)
+        try:
+            text_data_json = json.loads(text)
+        except:
+            print("Received:", text)
+            print("Does not appear to be JSON")
+            return
 
-        print("Receive:", text_data_json)
+        print("Received:", text_data_json)
         # message = text_data_json['message']
 
         response = treat_request(text_data_json)

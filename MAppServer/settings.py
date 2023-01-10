@@ -31,6 +31,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
+    "*"
 ]
 
 # Application definition
@@ -77,6 +78,8 @@ TEMPLATES = [
         },
     },
 ]
+
+WSGI_APPLICATION = "MAppServer.wsgi.application"
 
 DATABASES = {
     'default': {
@@ -138,49 +141,50 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        },
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'django-debug.log'),
-            'formatter': 'verbose'
-        },
-        'file_error': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'django-error.log'),
-            'formatter': 'verbose'
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file', 'file_error'],
-            'propagate': True,
-            'level': 'INFO'
-        },
-        'daphne': {
-            'handlers': ['console', 'file', 'file_error'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-    }
-}
-
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'verbose': {
+#             'format': '{levelname} {asctime} {message}',
+#             'style': '{',
+#         },
+#     },
+#     'handlers': {
+#         'console': {
+#             'level': 'DEBUG',
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'verbose'
+#         },
+#         'file': {
+#             'level': 'DEBUG',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'django-debug.log'),
+#             'formatter': 'verbose'
+#         },
+#         'file_error': {
+#             'level': 'ERROR',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'django-error.log'),
+#             'formatter': 'verbose'
+#         },
+#     },
+#     'loggers': {
+#         'django': {
+#             'handlers': ['console', 'file', 'file_error'],
+#             'propagate': True,
+#             'level': 'INFO'
+#         },
+#         'daphne': {
+#             'handlers': ['console', 'file', 'file_error'],
+#             'level': 'DEBUG',
+#             'propagate': True,
+#         },
+#     }
+# }
 
 # os.makedirs('tmp', exist_ok=True)
 #

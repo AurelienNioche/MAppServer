@@ -12,7 +12,7 @@ from reception_desk.reception_desk import Subject
 
 class RandomSocket(websocket.WebSocketApp):
 
-    def __init__(self, url="ws://localhost:8000",
+    def __init__(self, url="ws://127.0.0.1:8000/ws",
                  email="test@test.com",
                  password='1234',
                  gender='male',
@@ -96,7 +96,6 @@ def main():
     websocket.enableTrace(True)
     ws = RandomSocket()
     ws.run_forever()
-    print("yo")
 
 
 if __name__ == "__main__":

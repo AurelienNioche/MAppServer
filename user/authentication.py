@@ -27,8 +27,8 @@ def sign_up(email, password, condition,
             age=age,
             condition=condition,
             experiment_name=experiment_name)
-        from experimental_condition import experimental_condition
-        experimental_condition.user_creation(user=u, *args, **kwargs)
+        # from experimental_condition import experimental_condition
+        # experimental_condition.user_creation(user=u, *args, **kwargs)
 
     except IntegrityError as e:
         raise e

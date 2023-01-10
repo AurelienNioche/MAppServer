@@ -13,16 +13,9 @@ def main():
     print("WELCOME! This will help you to create a user!")
 
     experiment_name = input("experiment name:")
-
-    while True:
-        condition = input("condition (enter '0' or '1':")
-        if condition not in ('0', '1'):
-            print("I did not get the answer! Try again!")
-        else:
-            break
+    condition = input("condition:")
 
     email = input("email:")
-
     if User.objects.filter(email=email).first():
         print("Warning! User already exists!")
         erase_user = input("erase existing user (enter 'yes' or 'y' to continue)?")
@@ -37,10 +30,7 @@ def main():
     password = input("password:")
 
     while True:
-        gender = input("gender (enter "
-                       "'0' for female, "
-                       "'1' for male, "
-                       "'2' for other):")
+        gender = input("gender (enter 'female', 'male' or 'other'):")
         if gender not in (User.MALE, User.FEMALE, User.OTHER):
             print("I did not get the answer! Try again!")
         else:

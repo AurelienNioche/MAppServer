@@ -21,11 +21,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, email, password, **extra_fields):
         """Create and save a SuperUser with the given email and password."""
-        extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
 
@@ -35,7 +31,6 @@ class UserManager(BaseUserManager):
                     experiment_name,
                     **extra_fields):
         """Create and save a regular User with the given email and password."""
-        extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
 
         user = self._create_user(email=email,
@@ -48,13 +43,13 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
 
-    FEMALE = 0
-    MALE = 1
-    OTHER = 2
+    FEMALE = "female"
+    MALE = "male"
+    OTHER = "other"
 
     email = models.EmailField(unique=True)
 
-    gender = models.IntegerField(blank=True, null=True)
+    gender = models.TextField(blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
 
     condition = models.TextField(blank=True, null=True)
