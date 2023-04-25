@@ -21,7 +21,9 @@ from django.urls import include, path
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # path('', include('graphic_interface.urls')),
-    # url(r'^$', RedirectView.as_view(url='/admin')),
+    path('mapp/', include([
+        path('admin/', admin.site.urls),
+        # path('', include('graphic_interface.urls')),
+        # url(r'^$', RedirectView.as_view(url='/admin')),
+    ]))
 ]
