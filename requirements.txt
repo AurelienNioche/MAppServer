@@ -1,3 +1,4 @@
+daphne
 pytz
 python-dateutil
 django

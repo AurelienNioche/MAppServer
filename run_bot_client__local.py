@@ -12,7 +12,7 @@ from reception_desk.reception_desk import Subject
 
 class RandomSocket(websocket.WebSocketApp):
 
-    def __init__(self, url="wss://samoa.dcs.gla.ac.uk/mapp/ws",
+    def __init__(self, url="ws://127.0.0.1:8000/ws",
                  email="test@test.com",
                  password='1234',
                  gender='male',

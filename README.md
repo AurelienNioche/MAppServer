@@ -64,7 +64,7 @@ It should look like:
     
     SECRET_KEY = '<one arbirary combinaton of characters>'
 
-    DB_NAME = 'ActiveTeachingServer'
+    DB_NAME = 'MAppServer'
     DB_USER = 'postgres'
     DB_PASSWORD = ''
     
@@ -72,7 +72,21 @@ It should look like:
     EMAIL_HOST_PASSWORD = ''
 
 
+#### Sending mail with Gmail
+
+Mail => Settings => Allow IMAP
+
+Google Account => Security => Activate 2 Steps
+
+Then at the bottom, create an `App Password`
+
+
+
 #### PostgreSQL
+
+Make sure posgresql is running. If necessary:
+    
+    brew services start postgresql
 
 Create user 'postgres' if it doesn't exist
     

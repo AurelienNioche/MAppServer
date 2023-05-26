@@ -52,9 +52,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     gender = models.TextField(blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
 
+    experiment = models.TextField(blank=True, null=True)
     condition = models.TextField(blank=True, null=True)
 
-    experiment_name = models.TextField(blank=True, null=True)
     date_joined = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = 'email'
