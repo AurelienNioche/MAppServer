@@ -1,45 +1,49 @@
-from django.utils import timezone
-
 from user.models import User
 from user.authentication import login
 
+# from django.utils import timezone
+# from utils.time import datetime_to_sting
+# from random import shuffle
 
-from utils.time import datetime_to_sting
 
-from random import shuffle
+def _login(r):
+    rsp = dict(subject=r["subject"])
+    username = r["username"]
+    u = login(username=username)
+    if u is not None:
+        spec = dict(ok=True, user_id=u.id)
+    else:
+        spec = dict(ok=False)
+    rsp.update(spec)
+    return rsp
 
 
-class Subject:
+def _log_progress(r):
 
-    LOGIN = "login"
-    INTERACTION = "interaction"
+    u = User.objects.filer(id=r["user_id"])
+    assert u is not None
+    progress = r["progress"]
+    for p in progress:
+        step_number = p["step_number"]
+
+    # TODO
+
+# --------------------------------------- #
+
+ORIENT_REQUEST = {
+    "login": _login,
+    "progress": _log_progress,
+}
+
+# --------------------------------------- #
 
 
 def treat_request(r):
 
-    if r["subject"] == Subject.LOGIN:
-        u = login(email=r["email"], password=r["password"])
-        if u is not None:
-            return {
-                "subject": Subject.LOGIN,
-                "ok": True, "user_id": u.id
-            }
-        else:
-            return {
-                "subject": Subject.LOGIN,
-                "ok": False
-            }
-
-    elif r["subject"] == Subject.INTERACTION:
-
-        u = User.objects.filer(id=r["user_id"])
-        if u is None:
-            print("USER NOT FOUND!!!")
-            return
-
-    else:
+    subject = r["subject"]
+    if subject not in ORIENT_REQUEST:
         raise ValueError(
-            f"Subject of the request not recognized: '{r['subject']}'")
+            f"Subject of the request not recognized: '{subject}'")
 
 
 # def to_json_serializable_dic(obj):

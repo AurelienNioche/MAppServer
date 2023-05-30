@@ -7,16 +7,11 @@ application = get_wsgi_application()
 import json
 import websocket
 
-from reception_desk.reception_desk import Subject
 
-
-class RandomSocket(websocket.WebSocketApp):
+class Bot(websocket.WebSocketApp):
 
     def __init__(self, url="ws://127.0.0.1:8000/ws",
-                 email="test@test.com",
-                 password='1234',
-                 gender='male',
-                 age='25',
+                 username="123test",
                  waiting_time=1):
 
         super().__init__(
@@ -26,12 +21,12 @@ class RandomSocket(websocket.WebSocketApp):
             on_close=self.on_close,
             on_open=self.on_open)
 
-        self.email = email
-        self.password = password
-        self.gender = gender
-        self.age = age
+        self.username = username
+
+        # Parameters
         self.waiting_time = waiting_time
 
+        # Set afterwards
         self.user_id = None
 
     @staticmethod
@@ -39,16 +34,10 @@ class RandomSocket(websocket.WebSocketApp):
 
         print(f"I received: {json_string}")
         message = json.loads(json_string)
-
-        if message["subject"] == Subject.LOGIN:
-            if message["ok"]:
-                ws.user_id = message["user_id"]
-                return
-            else:
-                raise Exception("Can't login!")
-
-        else:
-            raise ValueError
+        subject = message["subject"]
+        rsp = {"login": ws.after_login,
+               }[subject]()
+        return ws.send_message(rsp)
 
     @staticmethod
     def on_error(ws, error):
@@ -73,10 +62,19 @@ class RandomSocket(websocket.WebSocketApp):
     def login(self):
 
         message = {
-            "subject": Subject.LOGIN,
-            "email": self.email,
-            "password": self.password}
+            "subject": "login",
+            "username": self.username
+        }
         self.send_message(message)
+
+    def after_login(self, ws, message):
+
+        if message["ok"]:
+            ws.user_id = message["user_id"]
+            return
+        else:
+            comment = message["comment"] if "comment" in message else None
+            raise Exception(f"Can't login! Additional message is: {comment}")
 
     # def signup(self):
     #
@@ -94,7 +92,7 @@ class RandomSocket(websocket.WebSocketApp):
 def main():
 
     websocket.enableTrace(True)
-    ws = RandomSocket()
+    ws = Bot()
     ws.run_forever()
 
 

@@ -9,13 +9,7 @@ from user.authentication import sign_up
 
 def main():
 
-    user = sign_up(
-        email="test@test.com",
-        password="1234",
-        gender="male",
-        age="age",
-        experiment_name="test",
-        condition="test")
+    user = sign_up(username="123test")
 
     if user is not None:
         print("Success!")

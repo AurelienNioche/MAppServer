@@ -37,9 +37,10 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'interaction.apps.InteractionConfig',
+    'reception_desk.apps.ReceptionDeskConfig',
+    'user_progress.apps.UserProgressConfig',
     'user.apps.UserConfig',
-    'reception_desk.apps.TaskConfig',
+
     'channels',
     'daphne',
     'django.contrib.admin',

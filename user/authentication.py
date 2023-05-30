@@ -4,31 +4,24 @@ from django.db import IntegrityError
 from user.models import User
 
 
-def login(email, password):
-    # Return User object if a backend authenticated the credentials,
-    # None otherwise
-    return authenticate(email=email, password=password)
-
-
-def sign_up(email, password, condition,
-            experiment_name,
-            gender=None, age=None,
-            *args, **kwargs):
+def login(username):
 
     """
-        Creates a new learner and returns its id
+        Return User object if a backend authenticated the credentials,
+        None otherwise
+    """
+
+    return authenticate(username=username)
+
+
+def sign_up(username, *args, **kwargs):
+
+    """
+        Creates a new user
     """
 
     try:
-        u = User.objects.create_user(
-            email=email,
-            password=password,
-            gender=gender,
-            age=age,
-            condition=condition,
-            experiment_name=experiment_name)
-        # from experimental_condition import experimental_condition
-        # experimental_condition.user_creation(user=u, *args, **kwargs)
+        u = User.objects.create_user(username, *args, **kwargs)
 
     except IntegrityError as e:
         raise e

@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class TaskConfig(AppConfig):
+class ReceptionDeskConfig(AppConfig):
     name = 'reception_desk'
