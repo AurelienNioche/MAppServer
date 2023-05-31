@@ -13,6 +13,7 @@ os.makedirs("data", exist_ok=True)
 
 
 def main():
+    # TODO: NEEDS TO BE UPDATED WITH NEW DATA STRUCTURE
     row_list = []
 
     users = User.objects.filter(is_superuser=False)

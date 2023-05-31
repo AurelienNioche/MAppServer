@@ -6,13 +6,17 @@ application = get_wsgi_application()
 
 import json
 import websocket
+import datetime
+import pytz
 
+import utils.time
 
 class Bot(websocket.WebSocketApp):
 
-    def __init__(self, url="ws://127.0.0.1:8000/ws",
-                 username="123test",
-                 waiting_time=1):
+    def __init__(
+            self, url="ws://127.0.0.1:8000/ws",
+            username="123test",
+            waiting_time=2):
 
         super().__init__(
             url,
@@ -23,7 +27,7 @@ class Bot(websocket.WebSocketApp):
 
         self.username = username
 
-        # Parameters
+        # Websocket parameters
         self.waiting_time = waiting_time
 
     @staticmethod
@@ -68,19 +72,34 @@ class Bot(websocket.WebSocketApp):
         assert msg["ok"]
         if "comment" in msg:
             print("comment", msg["comment"])
-        # self.send_message(rsp)
 
-    # def signup(self):
-    #
-    #     message = Request(
-    #         subject=Request.SIGN_UP,
-    #         email=self.email,
-    #         password=self.password,
-    #         gender=self.gender,
-    #         mother_tongue=self.mother_tongue,
-    #         other_language=self.other_language
-    #     )
-    #     self.send_message(message)
+        # Give a fake activity update
+        self.update()
+
+    def update(self):
+        now = datetime.datetime.now(tz=pytz.timezone('europe/london'))
+        activity_list = []
+
+        step_number = 0
+        n_epoch = 5
+
+        for t in reversed(range(n_epoch)):
+            ts = now - datetime.timedelta(minutes=5*t)
+            activity_list.append(dict(
+                timestamp=utils.time.datetime_to_sting(ts),
+                step_number=7500-500*t,
+            ))
+        rsp = dict(
+            subject="update",
+            username=self.username,
+            latest_reward_timestamp=None,
+            activity=activity_list,
+        )
+        self.send_message(rsp)
+
+    def after_update(self, msg):
+        print(msg)
+        print("DONE!")
 
 
 def main():
@@ -91,5 +110,6 @@ def main():
 
 
 if __name__ == "__main__":
-
+    # from test_user__create import test_user__create
+    # test_user__create()
     main()

@@ -13,7 +13,7 @@ admin.site.register(User, UserAdmin)
 
 class ActivityAdmin(admin.ModelAdmin):
     list_display = (
-        "id", "get_user", "timestamp", "step_number")
+        "id", "get_user", "timestamp", "step_number", "rewardable")
 
     @admin.display(ordering='username', description='username')
     def get_user(self, obj):

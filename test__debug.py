@@ -13,13 +13,13 @@ import pytz
 from MAppServer.settings import TIME_ZONE
 
 
-u = User.objects.filter(username="123test").first()
-RequestHandler.log_progress(dict(
-    subject="log_progress",
-    user_id=u.id,
-    progress=[
-        {
-            "timestamp": utils.time.datetime_to_sting(datetime.now(tz=pytz.timezone(TIME_ZONE))),
-            "step_number": 34
-        },
-    ]))
+# u = User.objects.filter(username="123test").first()
+# RequestHandler.log_progress(dict(
+#     subject="log_progress",
+#     user_id=u.id,
+#     progress=[
+#         {
+#             "timestamp": utils.time.datetime_to_sting(datetime.now(tz=pytz.timezone(TIME_ZONE))),
+#             "step_number": 34
+#         },
+#     ]))

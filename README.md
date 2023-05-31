@@ -4,6 +4,9 @@ Server part for the Active Teaching project.
 
 Instructions are given for MacOS (unless specified otherwise), using homebrew package manager (https://brew.sh/).
 
+## Websocket URL
+
+`wss://samoa.dcs.gla.ac.uk/mapp/ws`
 
 ## Dependencies
 
@@ -12,7 +15,8 @@ Instructions are given for MacOS (unless specified otherwise), using homebrew pa
     brew install python3
 
 Version used:
-- Python 3.7.7
+- Python 3.7.7 
+- Python 3.9.13
 
 #### Python libraries
 
