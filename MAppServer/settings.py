@@ -38,9 +38,8 @@ ALLOWED_HOSTS = [
 
 INSTALLED_APPS = [
     'reception_desk.apps.ReceptionDeskConfig',
-    'user_progress.apps.UserProgressConfig',
     'user.apps.UserConfig',
-
+    'assistant.apps.AssistantConfig',
     'channels',
     'daphne',
     'django.contrib.admin',
@@ -118,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'europe/london'
 
 USE_I18N = True
 

@@ -11,10 +11,11 @@ from user.models import User
 
 def create_super_user():
 
-    User.objects.create_superuser(f'{EMAIL_HOST_USER}',
-                                  f'{EMAIL_HOST_PASSWORD}')
+    User.objects.create_superuser(username=f'{EMAIL_HOST_USER}',
+                                  email=f'{EMAIL_HOST_USER}',
+                                  password=f'{EMAIL_HOST_PASSWORD}')
+    print("Superuser created successfully.")
 
 
 if __name__ == "__main__":
     create_super_user()
-    print("Done!")

@@ -26,18 +26,14 @@ class Bot(websocket.WebSocketApp):
         # Parameters
         self.waiting_time = waiting_time
 
-        # Set afterwards
-        self.user_id = None
-
     @staticmethod
     def on_message(ws, json_string):
 
         print(f"I received: {json_string}")
-        message = json.loads(json_string)
-        subject = message["subject"]
-        rsp = {"login": ws.after_login,
-               }[subject]()
-        return ws.send_message(rsp)
+        msg = json.loads(json_string)
+        subject = msg["subject"]
+        f = getattr(ws, f'after_{subject}')
+        f(msg)
 
     @staticmethod
     def on_error(ws, error):
@@ -67,14 +63,12 @@ class Bot(websocket.WebSocketApp):
         }
         self.send_message(message)
 
-    def after_login(self, ws, message):
-
-        if message["ok"]:
-            ws.user_id = message["user_id"]
-            return
-        else:
-            comment = message["comment"] if "comment" in message else None
-            raise Exception(f"Can't login! Additional message is: {comment}")
+    def after_login(self, msg):
+        print("after login")
+        assert msg["ok"]
+        if "comment" in msg:
+            print("comment", msg["comment"])
+        # self.send_message(rsp)
 
     # def signup(self):
     #
