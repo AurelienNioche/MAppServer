@@ -1,15 +1,9 @@
 import datetime
-
 from django.db import transaction
 
 from user.models import User, Reward, Activity
-
 import utils.time
-
 import assistant.core
-# from django.utils import timezone
-# from utils.time import datetime_to_sting
-# from random import shuffle
 
 
 class RequestHandler:
@@ -60,7 +54,7 @@ class RequestHandler:
             if latest_rwd_ts is None:
                 latest_rwd_ts = datetime.datetime.min
             else:
-                latest_r_ts = utils.time.string_to_datetime(latest_rwd_ts)
+                latest_rwd_ts = utils.time.string_to_datetime(latest_rwd_ts)
             rwd_not_sent = Reward.objects.filter(timestamp__gt=latest_rwd_ts)
             if rwd_not_sent is not None:
                 new_rewards = []
@@ -92,14 +86,3 @@ def treat_request(r):
             f"Subject of the request not recognized: '{subject}'")
     return f(r)
 
-
-# def to_json_serializable_dic(obj):
-#
-#     dic = obj.__dict__
-#     for (k, v) in dic.items():
-#         if type(v) == np.ndarray:
-#             dic[k] = [int(i) for i in v]
-#         elif type(v) == np.int64:
-#             dic[k] = int(v)
-#
-#     return dic
