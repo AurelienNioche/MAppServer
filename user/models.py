@@ -1,37 +1,60 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-import utils.time
+import datetime
 
 
 class User(AbstractUser):
 
-    experiment = models.TextField(blank=True, null=False)
-    condition = models.TextField(blank=True, null=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    REQUIRED_FIELDS = [experiment, condition]  # removes email from REQUIRED_FIELDS
+    experiment = models.TextField(blank=True, null=True)  # Optional
+    starting_date = models.DateField(null=False)
+    ending_date = models.DateField(null=False)
+
+    REQUIRED_FIELDS = [starting_date, ending_date]  # removes email from REQUIRED_FIELDS
 
 
 class Activity(models.Model):
 
     class Meta:
         verbose_name_plural = "activities"
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'timestamp'],
-                name='only one activity at the time for a single user')
-        ]
+        # constraints = [
+        #     models.UniqueConstraint(
+        #         fields=['user', 'timestamp'],
+        #         name='only one activity at a time for a single user')
+        # ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(default=None, null=False)
-    step_number = models.IntegerField(default=None, null=False)
-    rewardable = models.BooleanField(default=True)
+    dt = models.DateTimeField(default=None, null=False)
+    dt_last_boot = models.DateTimeField(default=None, null=False)
+    step_last_boot = models.IntegerField(default=None, null=False)
+    step_midnight = models.IntegerField(default=None, null=False)
 
 
 class Reward(models.Model):
 
+    # Set at creation
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(default=None, null=False)
+    date = models.DateField(default=None, null=False)
+    objective = models.IntegerField(default=None, null=False)
     amount = models.FloatField(default=None, null=False)
-    comment = models.CharField(default="", null=True, max_length=256)
+    condition = models.CharField(default=None, null=True, max_length=256)
+
+    # Set after interaction with the user
+    accessible = models.BooleanField(default=True, null=False)
+    objective_reached = models.BooleanField(default=False, null=False)
+    objective_reached_dt = models.DateTimeField(default=None, null=True)
+    cashed_out = models.BooleanField(default=False, null=False)
+    cashed_out_dt = models.DateTimeField(default=None, null=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "timestamp": datetime.datetime.fromordinal(self.date.toordinal()).timestamp(),
+            "objective": self.objective,
+            "amount": self.amount,
+            "objectiveReached": self.objective_reached,
+            "cashedOut": self.cashed_out,
+            "accessible": self.accessible
+        }

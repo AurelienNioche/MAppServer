@@ -226,3 +226,34 @@ If you want to pull, but Git doesn't let you do it
 
 sudo chmod 700 /var/lib/postgresql/10/main
 sudo chown postgres.postgres /var/lib/postgresql/10/main
+
+
+## Android 
+
+On the device, open the Settings app, select Developer options, and then enable USB debugging
+
+If already on, turn off and on again.
+
+## Assets edition on Inscape
+
+If png, do first: right click, trace bitmap, use "autotrace" option
+then for changing colour, use extensions-> color-> replace
+
+
+## Database size
+
+As a very raw estimate:
+https://dba.stackexchange.com/questions/46069/how-to-estimate-predict-data-size-and-index-size-of-a-table-in-mysql
+
+With 1M lines, around 70 MB
+
+
+## TODO 
+
+* Adapt server
+* Adapt C sharp
+* Test comm with Python server
+* Test comm with Android (offline mode)
+* Test all together
+* Optional?: Notification when reward reached when app is not on focus
+* (Very) Optional: delete records on phone when sync with server

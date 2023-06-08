@@ -39,7 +39,6 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     'reception_desk.apps.ReceptionDeskConfig',
     'user.apps.UserConfig',
-    'assistant.apps.AssistantConfig',
     'channels',
     'daphne',
     'django.contrib.admin',
@@ -265,3 +264,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 # SECURE_REFERRER_POLICY = 'no-referrer'
 
 # SECURE_HSTS_SECONDS = 60
+
+USER_BASE_REWARD = 6.00
+USER_DAILY_OBJECTIVE = 7000
+
+USER_LENGTH_REWARD_QUEUE = 20
