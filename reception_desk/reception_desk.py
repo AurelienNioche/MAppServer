@@ -2,6 +2,7 @@ import json
 import datetime
 import pytz
 from django.db import transaction
+import numpy as np
 
 from MAppServer.settings import TIME_ZONE, USER_BASE_REWARD, USER_DAILY_OBJECTIVE, USER_LENGTH_REWARD_QUEUE
 from user.models import User, Reward, Activity
@@ -13,6 +14,7 @@ class RequestHandler:
 
     @staticmethod
     def login(r):
+        print(f"User {r['username']} is trying to connect")
         username = r["username"]
         u = User.objects.filter(username=username).first()
         ok = u is not None
@@ -88,46 +90,47 @@ class RequestHandler:
         if last_record is None:
             last_record_ts = datetime.datetime(1, 1, 1).timestamp()
         else:
-            last_record_ts = last_record.timestamp()
+            last_record_ts = last_record.dt.timestamp()
 
         # ------------------------------------------------------------------------------------------------
 
-        rewards_done = r["rewardsDone"]
-        for reward_dic in rewards_done:
-            reward_id = reward_dic["id"]
-            reward = Reward.objects.filter(id=reward_id).first()
+        rewards_done_id = []
 
-        if reward is not None:
-            if r["objectiveReached"] is True:
-                reward.objective_reached = True
+        if "rewardsDone" in r:
+            for reward_dic in r["rewardsDone"]:
 
-                dt = datetime.datetime.fromtimestamp(r["objectiveReachedTimestamp"])
-                pytz.timezone(TIME_ZONE).localize(dt)
-                reward.objective_reached_dt = dt
+                reward_id = reward_dic["id"]
 
-            if r["cashedOut"] is True:
-                dt = datetime.datetime.fromtimestamp(r["cashedOutTimestamp"])
-                pytz.timezone(TIME_ZONE).localize(dt)
-                reward.cashed_out_dt = dt
+                reward = Reward.objects.filter(id=reward_id).first()
+                reward.objective_reached = reward_dic["objectiveReached"]
+                reward.objective_reached = reward_dic["cashedOut"]
 
-            if r["accessible"] is False:
-                reward.accessible = False
+                rewards_done_id.append(reward_id)
 
-            reward.save()
+                # TODO: ADD TIMESTAMPS
+                # dt = datetime.datetime.fromtimestamp(r["objectiveReachedTimestamp"])
+                # pytz.timezone(TIME_ZONE).localize(dt)
+                # reward.objective_reached_dt = dt
+
+                # dt = datetime.datetime.fromtimestamp(r["objectiveReachedTimestamp"])
+                # pytz.timezone(TIME_ZONE).localize(dt)
+                # reward.objective_reached_dt = dt
 
         # -------------------------------------------------------------------------------
 
-        if len(rewards_done): # If some rewards are already too old and/or have been obtained
+        if len(rewards_done_id) or Reward.objects.filter(accessible=False).count() == 0:  # If some rewards are already too old and/or have been obtained
             rewards = Reward.objects.filter(accessible=True).order_by("date", "objective")
-            rewards = [r.to_dict() for r in rewards][:USER_LENGTH_REWARD_QUEUE]
+            rewards = [r.to_dict() for r in rewards][:2]
             print("gives new rewards", rewards)
         else:
             rewards = []
 
         # -------------------------------------------------------------------------------
 
-        total_reward_cashed_out = Reward.objects.filter(user=u, cashed_out_by_user=True)\
-            .values_list("amount", flat=True).sum()
+        total_reward_cashed_out = np.sum(Reward.objects.filter(user=u, cashed_out=True)\
+            .values_list("amount", flat=True))
+
+        print("total reward_cashed_out", total_reward_cashed_out)
 
         chest_amount = USER_BASE_REWARD + total_reward_cashed_out
 
@@ -139,7 +142,7 @@ class RequestHandler:
             'chestAmount': chest_amount,
             'dailyObjective': USER_DAILY_OBJECTIVE,
             'rewards': rewards,
-            'rewardsDoneId': [reward_dic["id"] for reward_dic in rewards_done]
+            'rewardsDoneId': rewards_done_id
         }
 
         # -------------------------------------------------------------------------------

@@ -30,7 +30,7 @@ def test_user__create():
     experiment_name = "Michele's students"
 
     starting_date = utils.time.string_to_date(f"{starting_date}")
-    ending_date = starting_date + datetime.timedelta(days=n_days)
+    # ending_date = starting_date + datetime.timedelta(days=n_days)
 
     np.random.seed(123)
 
@@ -43,7 +43,6 @@ def test_user__create():
         username=username,
         experiment=experiment_name,
         starting_date=starting_date,
-        ending_date=ending_date
     )
 
     if user is not None:

@@ -6,10 +6,10 @@ application = get_wsgi_application()
 
 import json
 import websocket
-import datetime
-import pytz
-
-import utils.time
+# import datetime
+# import pytz
+#
+# import utils.time
 
 class Bot(websocket.WebSocketApp):
 
@@ -68,38 +68,38 @@ class Bot(websocket.WebSocketApp):
         self.send_message(message)
 
     def after_login(self, msg):
-        print("after login")
-        assert msg["ok"]
-        if "comment" in msg:
-            print("comment", msg["comment"])
+        print("after login, I'm done")
+        # assert msg["ok"]
+        # if "comment" in msg:
+        #     print("comment", msg["comment"])
+        #
+        # # Give a fake activity update
+        # self.update()
 
-        # Give a fake activity update
-        self.update()
-
-    def update(self):
-        now = datetime.datetime.now(tz=pytz.timezone('europe/london'))
-        activity_list = []
-
-        step_number = 0
-        n_epoch = 5
-
-        for t in reversed(range(n_epoch)):
-            ts = now - datetime.timedelta(minutes=5*t)
-            activity_list.append(dict(
-                timestamp=utils.time.datetime_to_sting(ts),
-                step_number=7500-500*t,
-            ))
-        rsp = dict(
-            subject="update",
-            username=self.username,
-            latest_reward_timestamp=None,
-            activity=activity_list,
-        )
-        self.send_message(rsp)
-
-    def after_update(self, msg):
-        print(msg)
-        print("DONE!")
+    # def update(self):
+    #     now = datetime.datetime.now(tz=pytz.timezone('europe/london'))
+    #     activity_list = []
+    #
+    #     step_number = 0
+    #     n_epoch = 5
+    #
+    #     for t in reversed(range(n_epoch)):
+    #         ts = now - datetime.timedelta(minutes=5*t)
+    #         activity_list.append(dict(
+    #             timestamp=utils.time.datetime_to_sting(ts),
+    #             step_number=7500-500*t,
+    #         ))
+    #     rsp = dict(
+    #         subject="update",
+    #         username=self.username,
+    #         latest_reward_timestamp=None,
+    #         activity=activity_list,
+    #     )
+    #     self.send_message(rsp)
+    #
+    # def after_update(self, msg):
+    #     print(msg)
+    #     print("DONE!")
 
 
 def main():

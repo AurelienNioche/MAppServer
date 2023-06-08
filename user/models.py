@@ -9,10 +9,9 @@ class User(AbstractUser):
     date_joined = models.DateTimeField(auto_now_add=True)
 
     experiment = models.TextField(blank=True, null=True)  # Optional
-    starting_date = models.DateField(null=False)
-    ending_date = models.DateField(null=False)
+    starting_date = models.DateField(null=True)
 
-    REQUIRED_FIELDS = [starting_date, ending_date]  # removes email from REQUIRED_FIELDS
+    REQUIRED_FIELDS = []  # removes email from REQUIRED_FIELDS
 
 
 class Activity(models.Model):

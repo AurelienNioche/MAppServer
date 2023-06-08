@@ -260,5 +260,8 @@ With 1M lines, around 70 MB
 * Test comm with Python server
 * Test comm with Android (offline mode)
 * Test all together
+
+* Not so optional: allow to skip login view
+
 * Optional?: Notification when reward reached when app is not on focus
 * (Very) Optional: delete records on phone when sync with server
