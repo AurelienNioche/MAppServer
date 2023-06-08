@@ -247,6 +247,11 @@ https://dba.stackexchange.com/questions/46069/how-to-estimate-predict-data-size-
 
 With 1M lines, around 70 MB
 
+## Notes to future me
+
+* Android/Java use timestamp in milliseconds
+* C# counts in seconds, but since Christ (what an idea)
+* Python counts in seconds and uses unix reference)
 
 ## TODO 
 

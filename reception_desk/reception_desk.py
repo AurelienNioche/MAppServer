@@ -92,12 +92,10 @@ class RequestHandler:
 
         # ------------------------------------------------------------------------------------------------
 
-        # -------------------------------------------------------------------------------------
-        # TODO: need force update OR implement change of day on app
-        # -------------------------------------------------------------------------------------
-
-        reward_id = r["rewardId"]
-        reward = Reward.objects.filter(id=reward_id).first()
+        rewards_done = r["rewardsDone"]
+        for reward_dic in rewards_done:
+            reward_id = reward_dic["id"]
+            reward = Reward.objects.filter(id=reward_id).first()
 
         if reward is not None:
             if r["objectiveReached"] is True:
@@ -119,8 +117,8 @@ class RequestHandler:
 
         # -------------------------------------------------------------------------------
 
-        if r["getNewReward"] is True:
-            rewards = Reward.objects.filter(accessible=True).order_by("date", "-objective")
+        if len(rewards_done): # If some rewards are already too old and/or have been obtained
+            rewards = Reward.objects.filter(accessible=True).order_by("date", "objective")
             rewards = [r.to_dict() for r in rewards][:USER_LENGTH_REWARD_QUEUE]
             print("gives new rewards", rewards)
         else:
@@ -140,7 +138,8 @@ class RequestHandler:
             'lastRecordTimestamp': last_record_ts,
             'chestAmount': chest_amount,
             'dailyObjective': USER_DAILY_OBJECTIVE,
-            'rewards': rewards
+            'rewards': rewards,
+            'rewardsDoneId': [reward_dic["id"] for reward_dic in rewards_done]
         }
 
         # -------------------------------------------------------------------------------
