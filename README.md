@@ -253,15 +253,37 @@ With 1M lines, around 70 MB
 * C# counts in seconds, but since Christ (what an idea)
 * Python counts in seconds and uses unix reference)
 
+## Unity as a library
+
+When cleaning the ressources, don't remove the string value for `game_view_content_description`
+
+
+    <string name="game_view_content_description">Game view</string>
+
+
+Also, for avoiding to have two icons, cutom manifest -> remove launcher
+
 ## TODO 
 
-* Adapt server
-* Adapt C sharp
-* Test comm with Python server
-* Test comm with Android (offline mode)
-* Test all together
+* Test Unity with Python server and fake Android
+* Test Unity with remote server but fake Android
+* Test Unity with "real" Android but offline mode
+* Test Unity with "real" Android and "real" server
+* Put on Google Play
 
-* Not so optional: allow to skip login view
+* Check for responsiveness
 
-* Optional?: Notification when reward reached when app is not on focus
+* Optional?: Notification when reward reached when app is not on focus <-----
+* Optional?: Keep trace of timestamp for objective reached cashed out
+
+* Optional?: Check how to access properly the timezone on Android
+
+* Optional?: Check for last day if we can display the last reward
+
+* (Very?) Optional: Display to user when the reward has been reached (???)
+* (Very?) Optional: Add animation for text when cashing out
+* (Very?) Optional: Update server with objective reached only (before cashed out)
+* (Very?) Optional: Keep trace of androidIds
 * (Very) Optional: delete records on phone when sync with server
+* (Very?) Optional: Prevent cheating by tracking phoneId
+* (Very?) Optional: View a history of the rewards

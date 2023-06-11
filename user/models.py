@@ -8,8 +8,9 @@ class User(AbstractUser):
 
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    experiment = models.TextField(blank=True, null=True)  # Optional
-    starting_date = models.DateField(null=True)
+    experiment = models.TextField(blank=True, null=True)  # Should be optional only for the superuser
+    starting_date = models.DateField(default=None, null=True)  # Should be optional only for the superuser
+    base_chest_amount = models.FloatField(default=None, null=True)  # Should be optional only for the superuser
 
     REQUIRED_FIELDS = []  # removes email from REQUIRED_FIELDS
 
@@ -47,10 +48,15 @@ class Reward(models.Model):
     cashed_out = models.BooleanField(default=False, null=False)
     cashed_out_dt = models.DateTimeField(default=None, null=True)
 
+    serverTag = models.CharField(default=None, null=True, max_length=256)
+    localTag = models.CharField(default=None, null=True, max_length=256)
+
     def to_dict(self):
         return {
             "id": self.id,
-            "timestamp": datetime.datetime.fromordinal(self.date.toordinal()).timestamp(),
+            # Take midday as timestamp
+            "timestamp": (datetime.datetime.fromordinal(self.date.toordinal()) + datetime.timedelta(days=0.5))
+            .timestamp(),
             "objective": self.objective,
             "amount": self.amount,
             "objectiveReached": self.objective_reached,

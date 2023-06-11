@@ -18,43 +18,35 @@ class RequestHandler:
         username = r["username"]
         u = User.objects.filter(username=username).first()
         ok = u is not None
-        return dict(
-            subject=r["subject"],
-            ok=ok
-        )
+        if ok:
+            u.last_login = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+            u.save()
+            print(f"User {username} successfully connected")
+            # if len(rewards_done_id) or Reward.objects.filter(accessible=False).count() == 0:  # If some rewards are already too old and/or have been obtained
+            rewards = Reward.objects.filter(user=u, accessible=True).order_by("date", "objective")
+            rewards = [r.to_dict() for r in rewards]
+            print(f"Gives new rewards: {rewards}")
+            total_reward_cashed_out = np.sum(Reward.objects.filter(user=u, cashed_out=True) \
+                                             .values_list("amount", flat=True))
+
+            print("total reward_cashed_out", total_reward_cashed_out)
+            chest_amount = u.base_chest_amount = total_reward_cashed_out
+        else:
+            chest_amount = 0
+            rewards = []
+
+        return {
+            "subject": r["subject"],
+            "ok": ok,
+            "dailyObjective": chest_amount,
+            "chestAmount": chest_amount,
+            "rewards": rewards,
+            "username": username,
+        }
         # TODO: return error message if connection before or after experiment
 
     @staticmethod
     def update(r):
-
-        """
-        r has the followings keys:
-
-        subject,
-        username,
-        rewardId,
-        objectiveReached,
-        objectiveReachedTimestamp,
-        rewardCashedOut,
-        rewardCashedOutTimestamp
-        records.
-
-        records has the following keys:
-        @PrimaryKey(autoGenerate = true)
-        public int id;
-
-        @ColumnInfo()
-        public long ts;  // Timestamp of the recording
-
-        @ColumnInfo()
-        public long tsLastBoot; // Timestamp of the last boot
-
-        @ColumnInfo()
-        public int stepLastBoot; // Number of step since the last boot
-
-        @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
-        public int stepMidnight;
-        """
 
         u = User.objects.filter(username=r["username"]).first()
         if u is None:
@@ -95,17 +87,20 @@ class RequestHandler:
         # ------------------------------------------------------------------------------------------------
 
         rewards_done_id = []
+        with transaction.atomic():
+            if "rewardsDone" in r:
+                for reward_dic in r["rewardsDone"]:
 
-        if "rewardsDone" in r:
-            for reward_dic in r["rewardsDone"]:
+                    reward_id = reward_dic["id"]
+                    print(f"Reward {reward_id} is done, I will remove it")
 
-                reward_id = reward_dic["id"]
+                    reward = Reward.objects.filter(id=reward_id).first()
+                    reward.objective_reached = reward_dic["objectiveReached"]
+                    reward.cashed_out = reward_dic["cashedOut"]
+                    reward.accessible = False  # Should be false by definition of 'done'
+                    reward.save()
 
-                reward = Reward.objects.filter(id=reward_id).first()
-                reward.objective_reached = reward_dic["objectiveReached"]
-                reward.objective_reached = reward_dic["cashedOut"]
-
-                rewards_done_id.append(reward_id)
+                    rewards_done_id.append(reward_id)
 
                 # TODO: ADD TIMESTAMPS
                 # dt = datetime.datetime.fromtimestamp(r["objectiveReachedTimestamp"])
@@ -118,21 +113,10 @@ class RequestHandler:
 
         # -------------------------------------------------------------------------------
 
-        if len(rewards_done_id) or Reward.objects.filter(accessible=False).count() == 0:  # If some rewards are already too old and/or have been obtained
-            rewards = Reward.objects.filter(accessible=True).order_by("date", "objective")
-            rewards = [r.to_dict() for r in rewards][:2]
-            print("gives new rewards", rewards)
-        else:
-            rewards = []
+        # else:
+        #     rewards = []
 
         # -------------------------------------------------------------------------------
-
-        total_reward_cashed_out = np.sum(Reward.objects.filter(user=u, cashed_out=True)\
-            .values_list("amount", flat=True))
-
-        print("total reward_cashed_out", total_reward_cashed_out)
-
-        chest_amount = USER_BASE_REWARD + total_reward_cashed_out
 
         # -------------------------------------------------------------------------------
 
