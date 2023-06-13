@@ -74,21 +74,21 @@ class Reward(models.Model):
 
 class Status(models.Model):
 
-    """
-    "status": "{\"amount\":0.1,\"chestAmount\":6.1,\"dailyObjective\":7000,\"dailyObjectiveReached\":false,\"dayOfTheMonth\":\"13\",\"dayOfTheWeek\":\"Tuesday\",\"id\":9,\"month\":\"June\",\"objective\":10,\"rewardId\":5,\"state\":\"waitingForUserToRevealNewReward\",\"stepNumberDay\":0,\"stepNumberReward\":0}"
-    """
+    class Meta:
+        verbose_name_plural = "statuses"
 
-    # Set at creation
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    last_update_dt = models.DateTimeField(default=None, null=False)
-    amount = models.FloatField(default=None, null=False)
-    objective = models.IntegerField(default=None, null=False)
-    dailyObjective = models.IntegerField(default=None, null=True)
-    dailyObjectiveReached = models.BooleanField(default=False, null=False)
-    dayOfTheMonth = models.CharField(default=None, null=True, max_length=256)
-    dayOfTheWeek = models.CharField(default=None, null=True, max_length=256)
-    month = models.CharField(default=None, null=True, max_length=256)
+    last_update_dt = models.DateTimeField(default=None, null=True)
+    chest_amount = models.FloatField(default=None, null=True)
+    daily_objective = models.IntegerField(default=None, null=True)
+    daily_objective_reached = models.BooleanField(default=False, null=True)
     state = models.CharField(default=None, null=True, max_length=256)
-    stepNumberDay = models.IntegerField(default=None, null=False)
-    stepNumberReward = models.IntegerField(default=None, null=False)
-    rewardId = models.IntegerField(default=None, null=True)
+    objective = models.IntegerField(default=None, null=True)
+    objective_reached = models.BinaryField(default=None, null=True)
+    amount = models.FloatField(default=None, null=True)
+    day_of_the_month = models.CharField(default=None, null=True, max_length=256)
+    day_of_the_week = models.CharField(default=None, null=True, max_length=256)
+    month = models.CharField(default=None, null=True, max_length=256)
+    step_number_day = models.IntegerField(default=None, null=True)
+    step_number_reward = models.IntegerField(default=None, null=True)
+    reward_id = models.IntegerField(default=None, null=True)

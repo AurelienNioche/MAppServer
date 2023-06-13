@@ -131,7 +131,7 @@ def test_user__create():
         print("Deleting old test user")
         u.delete()
 
-    user = User.objects.create_user(
+    u = User.objects.create_user(
         username=username,
         experiment=experiment_name,
         starting_date=starting_date,
@@ -139,14 +139,14 @@ def test_user__create():
         daily_objective=daily_objective,
     )
 
-    if user is not None:
+    if u is not None:
         print("Test user successfully created")
     else:
         raise ValueError("Something went wrong! User not created")
 
     for i in range(2):
         Reward(
-            user=user,
+            user=u,
             date=starting_date,
             amount=0.1,
             objective=10*(i+1)

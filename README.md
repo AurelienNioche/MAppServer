@@ -273,6 +273,8 @@ Also, for avoiding to have two icons, cutom manifest -> remove launcher
 
 * Check for responsiveness
 
+* Optional: remove the warning for the user when it is offline while exercising
+
 * (Very?) Optional: Check how to access properly the timezone on Android
 * (Very?) Optional: Notification ONLY when app is not on focus
 * (Very?) Optional: Display to user when the reward has been reached (???)

@@ -123,6 +123,7 @@ class RequestHandler:
 
         # Update the user status
         #     "status": "{\"amount\":0.1,\"chestAmount\":6.1,\"dailyObjective\":7000,\"dailyObjectiveReached\":false,\"dayOfTheMonth\":\"13\",\"dayOfTheWeek\":\"Tuesday\",\"id\":9,\"month\":\"June\",\"objective\":10,\"rewardId\":5,\"state\":\"waitingForUserToRevealNewReward\",\"stepNumberDay\":0,\"stepNumberReward\":0}"
+        status = json.loads(status)
         amount = status["amount"]
         chest_amount = status["chestAmount"]
         daily_objective = status["dailyObjective"]
@@ -141,15 +142,14 @@ class RequestHandler:
             "amount": amount,
             "chest_amount": chest_amount,
             "daily_objective": daily_objective,
-            "daily_objective_reached": daily_objective_reached,
+            "objective": objective,
+            "state": state,
+            "step_number_reward": step_number_reward,
+            "reward_id": reward_id,
+            "step_number_day": step_number_day,
             "day_of_the_month": day_of_the_month,
             "day_of_the_week": day_of_the_week,
             "month": month,
-            "objective": objective,
-            "reward_id": reward_id,
-            "state": state,
-            "step_number_day": step_number_day,
-            "step_number_reward": step_number_reward
         })
 
         return {
