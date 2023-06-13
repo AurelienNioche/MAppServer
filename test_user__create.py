@@ -1,22 +1,17 @@
 import os
-
-import pytz
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE",
                       "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 from django.db import transaction
+import pytz
 import numpy as np
 import datetime
+import uuid
 
 from user.models import User, Reward
-import utils.time
-
 from MAppServer.settings import TIME_ZONE
-
-import uuid
 
 
 class Condition:
@@ -124,6 +119,7 @@ def test_user__create():
     starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
     experiment_name = "Michele's students"
     base_chest_amount = 6
+    daily_objective = 7000
 
     # starting_date = utils.time.string_to_date(f"{starting_date}")
     # ending_date = starting_date + datetime.timedelta(days=n_days)
@@ -139,7 +135,8 @@ def test_user__create():
         username=username,
         experiment=experiment_name,
         starting_date=starting_date,
-        base_chest_amount=base_chest_amount
+        base_chest_amount=base_chest_amount,
+        daily_objective=daily_objective,
     )
 
     if user is not None:

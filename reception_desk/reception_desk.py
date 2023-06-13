@@ -4,17 +4,15 @@ import pytz
 from django.db import transaction
 import numpy as np
 
-from MAppServer.settings import TIME_ZONE, USER_BASE_REWARD, USER_DAILY_OBJECTIVE, USER_LENGTH_REWARD_QUEUE
+from MAppServer.settings import TIME_ZONE
 from user.models import User, Reward, Activity
-import utils.time
-# import assistant.core
 
 
 class RequestHandler:
 
     @staticmethod
     def login(r):
-        print(f"User {r['username']} is trying to connect")
+        print(f"User {r['username']} is trying to connect...")
         username = r["username"]
         u = User.objects.filter(username=username).first()
         ok = u is not None
@@ -22,136 +20,113 @@ class RequestHandler:
             u.last_login = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             u.save()
             print(f"User {username} successfully connected")
-            # if len(rewards_done_id) or Reward.objects.filter(accessible=False).count() == 0:  # If some rewards are already too old and/or have been obtained
-            rewards = Reward.objects.filter(user=u, accessible=True).order_by("date", "objective")
+            rewards = Reward.objects.filter(user=u).order_by("date", "objective")
             rewards = [r.to_dict() for r in rewards]
-            print(f"Gives new rewards: {rewards}")
-            total_reward_cashed_out = np.sum(Reward.objects.filter(user=u, cashed_out=True) \
-                                             .values_list("amount", flat=True))
 
-            print("total reward_cashed_out", total_reward_cashed_out)
-            chest_amount = u.base_chest_amount = total_reward_cashed_out
+            total_reward_cashed_out = np.sum(
+                Reward.objects.filter(user=u, cashed_out=True).values_list("amount", flat=True))
+            chest_amount = u.base_chest_amount + total_reward_cashed_out
+            daily_objective = u.daily_objective
         else:
-            chest_amount = 0
-            rewards = []
+            print(f"User {r['username']} not recognized!")
+            # Just to be sure that the variables are defined for passing to json decoder
+            chest_amount, daily_objective, rewards = 0, 0, []
 
         return {
             "subject": r["subject"],
             "ok": ok,
-            "dailyObjective": chest_amount,
+            "dailyObjective": daily_objective,
             "chestAmount": chest_amount,
-            "rewards": rewards,
+            "rewardList": json.dumps(rewards),
             "username": username,
         }
-        # TODO: return error message if connection before or after experiment
 
     @staticmethod
     def update(r):
 
-        u = User.objects.filter(username=r["username"]).first()
+        username = r["username"]
+        progress_json = r["records"]
+        un_sync_rewards_json = r["unSyncRewards"]
+        status = r["status"]   # Not used for now
+
+        tz = pytz.timezone(TIME_ZONE)
+
+        u = User.objects.filter(username=username).first()
         if u is None:
             raise ValueError("User not recognized")
 
         # --------------------------------------------------------------------------------------------
 
         # Record any new progress
-        progress_json = r["records"]
         progress = json.loads(progress_json)
         with transaction.atomic():
             for p in progress:
 
-                dt = datetime.datetime.fromtimestamp(p["ts"] / 1000)
-                dt = pytz.timezone(TIME_ZONE).localize(dt)
+                p_id = p["id"]
+                ts = p["ts"]
+                ts_last_boot = p["tsLastBoot"]
+                step_last_boot = p["stepLastBoot"]
+                step_midnight = p["stepMidnight"]
 
-                dt_last_boot = datetime.datetime.fromtimestamp(p["tsLastBoot"] / 1000)
-                dt_last_boot = pytz.timezone(TIME_ZONE).localize(dt_last_boot)
-
-                # if Activity.objects.filter(user=u, timestamp=dt).first() is None:
-                a = Activity(
-                    user=u,
-                    dt=dt,
-                    dt_last_boot=dt_last_boot,
-                    step_last_boot=p["stepLastBoot"],
-                    step_midnight=p["stepMidnight"])
-                a.save()
+                if Activity.objects.filter(id=p_id).first() is None:
+                    dt = datetime.datetime.fromtimestamp(ts / 1000, tz=tz)
+                    dt_last_boot = datetime.datetime.fromtimestamp(ts_last_boot / 1000, tz=tz)
+                    a = Activity(
+                        id=p_id,
+                        user=u,
+                        dt=dt,
+                        dt_last_boot=dt_last_boot,
+                        step_last_boot=step_last_boot,
+                        step_midnight=step_midnight)
+                    a.save()
 
         # ------------------------------------------------------------------------------------
 
         # Get the latest user_progress timestamp
-        last_record = Activity.objects.latest("dt")
-        if last_record is None:
-            last_record_ts = datetime.datetime(1, 1, 1).timestamp()
+        if Activity.objects.count():
+            last_record = Activity.objects.latest("dt")
+            last_record_dt = last_record.dt
         else:
-            last_record_ts = last_record.dt.timestamp()
+            last_record_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
+
+        last_record_ts = last_record_dt.timestamp() * 1000
 
         # ------------------------------------------------------------------------------------------------
 
-        rewards_done_id = []
+        un_sync_rewards = json.loads(un_sync_rewards_json)
+        sync_rewards_id = []
+        sync_rewards_server_tag = []
+
         with transaction.atomic():
-            if "rewardsDone" in r:
-                for reward_dic in r["rewardsDone"]:
 
-                    reward_id = reward_dic["id"]
-                    print(f"Reward {reward_id} is done, I will remove it")
+            for r_android in un_sync_rewards:
 
-                    reward = Reward.objects.filter(id=reward_id).first()
-                    reward.objective_reached = reward_dic["objectiveReached"]
-                    reward.cashed_out = reward_dic["cashedOut"]
-                    reward.accessible = False  # Should be false by definition of 'done'
-                    reward.save()
+                reward_id = r_android["id"]
+                objective_reached = r_android["objectiveReached"]
+                cashed_out = r_android["cashedOut"]
+                objective_reached_ts = r_android["objectiveReachedTs"]
+                cashed_out_ts = r_android["cashedOutTs"]
+                accessible = r_android["accessible"]  # Maybe not needed
 
-                    rewards_done_id.append(reward_id)
+                reward = Reward.objects.filter(id=reward_id).first()
+                Reward.objects.filter(id=reward_id).update(**{
+                    "objective_reached": objective_reached,
+                    "cashed_out": cashed_out,
+                    "objective_reached_dt": datetime.datetime.fromtimestamp(objective_reached_ts/1000, tz=tz),
+                    "cashed_out_dt": datetime.datetime.fromtimestamp(cashed_out_ts/1000, tz=tz),
+                    "accessible": accessible})
 
-                # TODO: ADD TIMESTAMPS
-                # dt = datetime.datetime.fromtimestamp(r["objectiveReachedTimestamp"])
-                # pytz.timezone(TIME_ZONE).localize(dt)
-                # reward.objective_reached_dt = dt
-
-                # dt = datetime.datetime.fromtimestamp(r["objectiveReachedTimestamp"])
-                # pytz.timezone(TIME_ZONE).localize(dt)
-                # reward.objective_reached_dt = dt
-
-        # -------------------------------------------------------------------------------
-
-        # else:
-        #     rewards = []
-
-        # -------------------------------------------------------------------------------
+                sync_rewards_id.append(reward.id)
+                sync_rewards_server_tag.append(r_android["localTag"])  # Replace serverTag by localTag
 
         # -------------------------------------------------------------------------------
 
         return {
             'subject': r["subject"],
-            'lastRecordTimestamp': last_record_ts,
-            'chestAmount': chest_amount,
-            'dailyObjective': USER_DAILY_OBJECTIVE,
-            'rewards': rewards,
-            'rewardsDoneId': rewards_done_id
+            'lastRecordTimestampMillisecond': last_record_ts,
+            'syncRewardsId': json.dumps(sync_rewards_id),
+            'syncRewardsServerTag': json.dumps(sync_rewards_server_tag)
         }
-
-        # -------------------------------------------------------------------------------
-        #
-        # latest_pgr_timestamp = utils.time.datetime_to_sting(latest_pgr_timestamp)
-
-        # public int rewardId = -1;
-        #         public string rewardDate = "<date>";
-        #         public float rewardAmount = -1;
-        #         public int dailyObjective = -1;
-        #         public int rewardObjective = -1;
-        #         public bool lastRewardOfTheDay = false;
-        #         public bool objectiveReached = false; // In case of app restart but still need to cashout
-        #
-        #         public int newRewardId = -1;
-        #         public string newRewardDate = "<date>";
-        #         public float newRewardAmount = -1;
-        #         public int newDailyObjective = -1;
-        #         public int newRewardObjective = -1;
-        #         public bool newLastRewardOfTheDay = false;
-        #
-        #         public string lastRecordTimestamp = DUMMY_TIMESTAMP;
-        #
-        #         public float chestAmount = -1;
-
 
 # --------------------------------------- #
 

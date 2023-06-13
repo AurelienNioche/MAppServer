@@ -142,49 +142,6 @@ EMAIL_PORT = 587
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'formatters': {
-#         'verbose': {
-#             'format': '{levelname} {asctime} {message}',
-#             'style': '{',
-#         },
-#     },
-#     'handlers': {
-#         'console': {
-#             'level': 'DEBUG',
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'verbose'
-#         },
-#         'file': {
-#             'level': 'DEBUG',
-#             'class': 'logging.FileHandler',
-#             'filename': os.path.join(BASE_DIR, 'django-debug.log'),
-#             'formatter': 'verbose'
-#         },
-#         'file_error': {
-#             'level': 'ERROR',
-#             'class': 'logging.FileHandler',
-#             'filename': os.path.join(BASE_DIR, 'django-error.log'),
-#             'formatter': 'verbose'
-#         },
-#     },
-#     'loggers': {
-#         'django': {
-#             'handlers': ['console', 'file', 'file_error'],
-#             'propagate': True,
-#             'level': 'INFO'
-#         },
-#         'daphne': {
-#             'handlers': ['console', 'file', 'file_error'],
-#             'level': 'DEBUG',
-#             'propagate': True,
-#         },
-#     }
-# }
-
 # os.makedirs('tmp', exist_ok=True)
 #
 # LOGGING = {
@@ -264,8 +221,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 # SECURE_REFERRER_POLICY = 'no-referrer'
 
 # SECURE_HSTS_SECONDS = 60
-
-USER_BASE_REWARD = 6.00
-USER_DAILY_OBJECTIVE = 7000
-
-USER_LENGTH_REWARD_QUEUE = 20

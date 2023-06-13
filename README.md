@@ -263,7 +263,7 @@ When cleaning the ressources, don't remove the string value for `game_view_conte
 
 Also, for avoiding to have two icons, cutom manifest -> remove launcher
 
-## TODO 
+## TODO
 
 * Test Unity with Python server and fake Android
 * Test Unity with remote server but fake Android
@@ -273,17 +273,11 @@ Also, for avoiding to have two icons, cutom manifest -> remove launcher
 
 * Check for responsiveness
 
-* Optional?: Notification when reward reached when app is not on focus <-----
-* Optional?: Keep trace of timestamp for objective reached cashed out
-
-* Optional?: Check how to access properly the timezone on Android
-
-* Optional?: Check for last day if we can display the last reward
-
+* (Very?) Optional: Check how to access properly the timezone on Android
+* (Very?) Optional: Notification ONLY when app is not on focus
 * (Very?) Optional: Display to user when the reward has been reached (???)
 * (Very?) Optional: Add animation for text when cashing out
-* (Very?) Optional: Update server with objective reached only (before cashed out)
 * (Very?) Optional: Keep trace of androidIds
-* (Very) Optional: delete records on phone when sync with server
+* (Very) Optional: delete step records on phone when sync with server
 * (Very?) Optional: Prevent cheating by tracking phoneId
 * (Very?) Optional: View a history of the rewards
