@@ -10,7 +10,7 @@ import numpy as np
 import datetime
 import uuid
 
-from user.models import User, Reward
+from user.models import User, Reward, Status
 from MAppServer.settings import TIME_ZONE
 
 
@@ -151,6 +151,9 @@ def test_user__create():
             amount=0.1,
             objective=10*(i+1)
         ).save()
+
+    status = Status(user=u, )
+    status.save()
 
     # current_date += datetime.timedelta(days=1)
 

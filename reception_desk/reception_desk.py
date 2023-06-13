@@ -5,7 +5,7 @@ from django.db import transaction
 import numpy as np
 
 from MAppServer.settings import TIME_ZONE
-from user.models import User, Reward, Activity
+from user.models import User, Reward, Activity, Status
 
 
 class RequestHandler:
@@ -47,7 +47,7 @@ class RequestHandler:
         username = r["username"]
         progress_json = r["records"]
         un_sync_rewards_json = r["unSyncRewards"]
-        status = r["status"]   # Not used for now
+        status = r["status"]
 
         tz = pytz.timezone(TIME_ZONE)
 
@@ -62,17 +62,17 @@ class RequestHandler:
         with transaction.atomic():
             for p in progress:
 
-                p_id = p["id"]
+                android_id = p["id"]
                 ts = p["ts"]
                 ts_last_boot = p["tsLastBoot"]
                 step_last_boot = p["stepLastBoot"]
                 step_midnight = p["stepMidnight"]
 
-                if Activity.objects.filter(id=p_id).first() is None:
+                if Activity.objects.filter(user=u, android_id=android_id).first() is None:
                     dt = datetime.datetime.fromtimestamp(ts / 1000, tz=tz)
                     dt_last_boot = datetime.datetime.fromtimestamp(ts_last_boot / 1000, tz=tz)
                     a = Activity(
-                        id=p_id,
+                        android_id=android_id,
                         user=u,
                         dt=dt,
                         dt_last_boot=dt_last_boot,
@@ -120,6 +120,37 @@ class RequestHandler:
                 sync_rewards_server_tag.append(r_android["localTag"])  # Replace serverTag by localTag
 
         # -------------------------------------------------------------------------------
+
+        # Update the user status
+        #     "status": "{\"amount\":0.1,\"chestAmount\":6.1,\"dailyObjective\":7000,\"dailyObjectiveReached\":false,\"dayOfTheMonth\":\"13\",\"dayOfTheWeek\":\"Tuesday\",\"id\":9,\"month\":\"June\",\"objective\":10,\"rewardId\":5,\"state\":\"waitingForUserToRevealNewReward\",\"stepNumberDay\":0,\"stepNumberReward\":0}"
+        amount = status["amount"]
+        chest_amount = status["chestAmount"]
+        daily_objective = status["dailyObjective"]
+        daily_objective_reached = status["dailyObjectiveReached"]
+        day_of_the_month = status["dayOfTheMonth"]
+        day_of_the_week = status["dayOfTheWeek"]
+        month = status["month"]
+        objective = status["objective"]
+        reward_id = status["rewardId"]
+        state = status["state"]
+        step_number_day = status["stepNumberDay"]
+        step_number_reward = status["stepNumberReward"]
+
+        Status.objects.filter(user=u).update(**{
+            "last_update_dt": datetime.datetime.now(tz=tz),
+            "amount": amount,
+            "chest_amount": chest_amount,
+            "daily_objective": daily_objective,
+            "daily_objective_reached": daily_objective_reached,
+            "day_of_the_month": day_of_the_month,
+            "day_of_the_week": day_of_the_week,
+            "month": month,
+            "objective": objective,
+            "reward_id": reward_id,
+            "state": state,
+            "step_number_day": step_number_day,
+            "step_number_reward": step_number_reward
+        })
 
         return {
             'subject': r["subject"],

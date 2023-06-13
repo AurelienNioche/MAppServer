@@ -23,11 +23,12 @@ class Activity(models.Model):
         verbose_name_plural = "activities"
         # constraints = [
         #     models.UniqueConstraint(
-        #         fields=['user', 'timestamp'],
-        #         name='only one activity at a time for a single user')
+        #         fields=['user', 'android_id'],
+        #         name='only one activity with the same android_id for a single user')
         # ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    android_id = models.IntegerField(default=None, null=False)
     dt = models.DateTimeField(default=None, null=False)
     dt_last_boot = models.DateTimeField(default=None, null=False)
     step_last_boot = models.IntegerField(default=None, null=False)
@@ -69,3 +70,25 @@ class Reward(models.Model):
             "serverTag": initial_tag,
             "localTag": initial_tag
         }
+
+
+class Status(models.Model):
+
+    """
+    "status": "{\"amount\":0.1,\"chestAmount\":6.1,\"dailyObjective\":7000,\"dailyObjectiveReached\":false,\"dayOfTheMonth\":\"13\",\"dayOfTheWeek\":\"Tuesday\",\"id\":9,\"month\":\"June\",\"objective\":10,\"rewardId\":5,\"state\":\"waitingForUserToRevealNewReward\",\"stepNumberDay\":0,\"stepNumberReward\":0}"
+    """
+
+    # Set at creation
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    last_update_dt = models.DateTimeField(default=None, null=False)
+    amount = models.FloatField(default=None, null=False)
+    objective = models.IntegerField(default=None, null=False)
+    dailyObjective = models.IntegerField(default=None, null=True)
+    dailyObjectiveReached = models.BooleanField(default=False, null=False)
+    dayOfTheMonth = models.CharField(default=None, null=True, max_length=256)
+    dayOfTheWeek = models.CharField(default=None, null=True, max_length=256)
+    month = models.CharField(default=None, null=True, max_length=256)
+    state = models.CharField(default=None, null=True, max_length=256)
+    stepNumberDay = models.IntegerField(default=None, null=False)
+    stepNumberReward = models.IntegerField(default=None, null=False)
+    rewardId = models.IntegerField(default=None, null=True)
