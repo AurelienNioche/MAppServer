@@ -7,12 +7,25 @@ import numpy as np
 from MAppServer.settings import TIME_ZONE
 from user.models import User, Reward, Activity, Status
 
+from test_user__create import test_user__create
+
 
 class RequestHandler:
 
     @staticmethod
     def login(r):
         print(f"User {r['username']} is trying to connect...")
+
+        reset_user = r["resetUser"]
+        if reset_user:
+            print("Resetting user")
+            u = User.objects.filter(username=r["username"]).first()
+            if u is not None:
+                u.delete()
+                test_user__create()
+            else:
+                print("User not found")
+
         username = r["username"]
         u = User.objects.filter(username=username).first()
         ok = u is not None
