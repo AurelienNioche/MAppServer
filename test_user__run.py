@@ -9,10 +9,12 @@ import websocket
 
 
 class Bot(websocket.WebSocketApp):
-
+    """
+    ws://192.168.0.101:8000/ws
+    wss://samoa.dcs.gla.ac.uk/mapp/ws
+    """
     def __init__(
-            # wss://samoa.dcs.gla.ac.uk/mapp/ws
-            self, url="ws://192.168.0.101:8000/ws",
+            self, url="wss://samoa.dcs.gla.ac.uk/mapp/ws",
             username="123test",
             waiting_time=2):
 
