@@ -263,6 +263,10 @@ When cleaning the ressources, don't remove the string value for `game_view_conte
 
 Also, for avoiding to have two icons, cutom manifest -> remove launcher
 
+## Websockets for UoG
+
+`wss://samoa.dcs.gla.ac.uk/mapp/ws`
+
 ## TODO
 
 * Test Unity with Python server and fake Android
@@ -273,7 +277,9 @@ Also, for avoiding to have two icons, cutom manifest -> remove launcher
 
 * Check for responsiveness
 
-* Optional: remove the warning for the user when it is offline while exercising
+* Cancel the notification after cashing out
+* Optional: better design after finishing the day
+* Optional: add sounds and effects when cashing out
 
 * (Very?) Optional: Check how to access properly the timezone on Android
 * (Very?) Optional: Notification ONLY when app is not on focus

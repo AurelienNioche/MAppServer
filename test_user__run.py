@@ -6,15 +6,12 @@ application = get_wsgi_application()
 
 import json
 import websocket
-# import datetime
-# import pytz
-#
-# import utils.time
+
 
 class Bot(websocket.WebSocketApp):
 
     def __init__(
-            self, url="ws://127.0.0.1:8000/ws",
+            self, url="wss://samoa.dcs.gla.ac.uk/mapp/ws",
             username="123test",
             waiting_time=2):
 

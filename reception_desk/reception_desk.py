@@ -127,7 +127,6 @@ class RequestHandler:
         amount = status["amount"]
         chest_amount = status["chestAmount"]
         daily_objective = status["dailyObjective"]
-        daily_objective_reached = status["dailyObjectiveReached"]
         day_of_the_month = status["dayOfTheMonth"]
         day_of_the_week = status["dayOfTheWeek"]
         month = status["month"]
