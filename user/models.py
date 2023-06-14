@@ -14,8 +14,6 @@ class User(AbstractUser):
     base_chest_amount = models.FloatField(default=None, null=True)  # Should be optional only for the superuser
     daily_objective = models.IntegerField(default=None, null=True)  # Should be optional only for the superuser
 
-    objects = UserManager()
-
     REQUIRED_FIELDS = []  # removes email from REQUIRED_FIELDS
 
 
