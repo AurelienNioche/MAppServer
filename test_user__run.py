@@ -11,7 +11,8 @@ import websocket
 class Bot(websocket.WebSocketApp):
 
     def __init__(
-            self, url="wss://samoa.dcs.gla.ac.uk/mapp/ws",
+            # wss://samoa.dcs.gla.ac.uk/mapp/ws
+            self, url="ws://192.168.0.101:8000/ws",
             username="123test",
             waiting_time=2):
 
@@ -60,7 +61,8 @@ class Bot(websocket.WebSocketApp):
 
         message = {
             "subject": "login",
-            "username": self.username
+            "username": self.username,
+            "resetUser": False
         }
         self.send_message(message)
 
