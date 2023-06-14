@@ -34,7 +34,7 @@ ALLOWED_HOSTS = [
     "*"
 ]
 
-CSRF_TRUSTED_ORIGINS = ["https://pearse.dcs.gla.ac.uk:8000", "https://samoa.dcs.gla.ac.uk"]
+CSRF_TRUSTED_ORIGINS = ["http://pearse.dcs.gla.ac.uk"]
 
 # Application definition
 
