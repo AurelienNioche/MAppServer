@@ -25,7 +25,7 @@ class Condition:
         return [k for k in cls.__dict__.keys() if k[0].isupper()]
 
 
-def create_rewards(user, starting_date, n_days):
+def create_rewards(user, starting_date, n_days, seed=None):
     """
     Constant: get money if reached the goal
     Proportional quantised: we have scales, based how much you walked you fall under scale. Ex.:
@@ -53,6 +53,8 @@ def create_rewards(user, starting_date, n_days):
     £1.5 per day, 7k steps
     """
 
+    np.random.seed(seed)
+
     user_cond = []
     uniq_cond = Condition.list()
     n_rep_cond = n_days // len(uniq_cond)
@@ -65,8 +67,6 @@ def create_rewards(user, starting_date, n_days):
 
     while len(user_cond) < n_days:
         user_cond.insert(0, Condition.CONSTANT)  # That's the + 1 day
-
-    print("User conditions", user_cond)
 
     # ---------------------------------------------------------------
 
@@ -111,24 +111,32 @@ def create_rewards(user, starting_date, n_days):
 
         current_date += datetime.timedelta(days=1)
 
-@transaction.atomic
-def test_michele__create():
+    print("Reward successfully created. User conditions:", user_cond)
 
-    seed = 123
-    username = "michele"
-    starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-    experiment_name = "Michele's students"
-    base_chest_amount = 6
-    daily_objective = 7000
+# ---------------------------------------------------------------
 
-    # starting_date = utils.time.string_to_date(f"{starting_date}")
-    # ending_date = starting_date + datetime.timedelta(days=n_days)
 
-    np.random.seed(seed)
+def create_status(u):
+
+    status = Status(user=u, )
+    status.save()
+    print("Status successfully created")
+
+
+# ---------------------------------------------------------------
+
+
+def create_user(
+    username,
+    experiment_name,
+    starting_date,
+    base_chest_amount,
+    daily_objective,
+):
 
     u = User.objects.filter(username=username).first()
     if u is not None:
-        print("Deleting old test user")
+        print("Deleting previous user with the same name")
         u.delete()
 
     u = User.objects.create_user(
@@ -140,13 +148,36 @@ def test_michele__create():
     )
 
     if u is not None:
-        print("Test user successfully created")
+        print("User successfully created")
     else:
         raise ValueError("Something went wrong! User not created")
 
-    create_rewards(user=u, starting_date=starting_date, n_days=20)
+    return u
 
-    print("rewards created")
+
+@transaction.atomic
+def test_michele__create():
+
+    seed = 123
+    username = "michele"
+    starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+    experiment_name = "alpha-test"
+    base_chest_amount = 6
+    daily_objective = 7000
+    n_days = 20
+
+    u = create_user(username=username,
+                    experiment_name=experiment_name,
+                    starting_date=starting_date,
+                    base_chest_amount=base_chest_amount,
+                    daily_objective=daily_objective)
+    create_status(u=u)
+    create_rewards(user=u,
+                   starting_date=starting_date,
+                   n_days=n_days,
+                   seed=seed)
+
+    assert Reward.objects.filter(user=u).count() > 0 and Status.objects.filter(user=u).count() > 0
 
 
 if __name__ == "__main__":

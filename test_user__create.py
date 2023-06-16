@@ -112,7 +112,7 @@ def create_rewards(user, starting_date, n_days):
         current_date += datetime.timedelta(days=1)
 
 @transaction.atomic
-def test_user__create():
+def test_user__basic():
 
     seed = 123
     username = "123test"
@@ -158,5 +158,31 @@ def test_user__create():
     # current_date += datetime.timedelta(days=1)
 
 
+def test_user_xp_like__create():
+
+    seed = 123
+    username = "123test"
+    starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+    experiment_name = "Michele's students"
+    base_chest_amount = 6
+    daily_objective = 7000
+    n_days = 30
+
+    from test_michele__create import create_status, create_user, create_rewards
+
+    u = create_user(username=username,
+                    experiment_name=experiment_name,
+                    starting_date=starting_date,
+                    base_chest_amount=base_chest_amount,
+                    daily_objective=daily_objective)
+    create_status(u=u)
+    create_rewards(user=u,
+                   starting_date=starting_date,
+                   n_days=n_days,
+                   seed=seed)
+
+    assert Reward.objects.filter(user=u).count() > 0 and Status.objects.filter(user=u).count() > 0, "Something went wrong!"
+
+
 if __name__ == "__main__":
-    test_user__create()
+    test_user_xp_like__create()

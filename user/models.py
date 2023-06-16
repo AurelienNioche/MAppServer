@@ -45,7 +45,7 @@ class Reward(models.Model):
     condition = models.CharField(default=None, null=True, max_length=256)     # ex: "proportional_quantity"
 
     # Set after interaction with the user
-    accessible = models.BooleanField(default=True, null=False)
+    accessible = models.BooleanField(default=False, null=False)        # Default need to be false
     objective_reached = models.BooleanField(default=False, null=False)
     objective_reached_dt = models.DateTimeField(default=None, null=True)
     cashed_out = models.BooleanField(default=False, null=False)

@@ -247,11 +247,31 @@ https://dba.stackexchange.com/questions/46069/how-to-estimate-predict-data-size-
 
 With 1M lines, around 70 MB
 
-## Notes to future me
+## Notes to future me concerning the timestamps
 
 * Android/Java use timestamp in milliseconds
-* C# counts in seconds, but since Christ (what an idea)
+* C# counts in seconds like Python, but since Christ (what an idea)
 * Python counts in seconds and uses unix reference)
+
+## If you want to allow backup on Android, add this to the manifest, in the application chevron
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+
+E.g
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:background="#000000"
+        tools:targetApi="33"
+        >
 
 ## Unity as a library
 
@@ -263,29 +283,47 @@ When cleaning the ressources, don't remove the string value for `game_view_conte
 
 Also, for avoiding to have two icons, cutom manifest -> remove launcher
 
-## Websockets for UoG
+## Websocket Library for Unity
 
-`wss://samoa.dcs.gla.ac.uk/mapp/ws`
+`https://github.com/endel/NativeWebSocket/tree/master`
+
+## Config for UoG
+
+websocket URL: `wss://samoa.dcs.gla.ac.uk/mapp/ws`
+
+Django logs: `/home/aurelien/DjangoApps/MAppServer/log/asgi.log`
+
+Service logs: `nano /var/log/supervisor/supervisord.log`
+
+Nginx logs: `/var/log/nginx/access.log` and `/var/log/nginx/error.log` 
+
+
+restart all processes:
+
+    sudo supervisorctl restart all
+
+
+Create the db:
+
+    sudo -u postgres createdb MAppServer
+
+Add to config file:
+    
+    ALLOWED_HOSTS = ["*"]
+    CSRF_TRUSTED_ORIGINS = ["http://pearse.dcs.gla.ac.uk"]
 
 ## TODO
 
-* Test Unity with Python server and fake Android
-* Test Unity with remote server but fake Android
-* Test Unity with "real" Android but offline mode
-* Test Unity with "real" Android and "real" server
-* Put on Google Play
-
+* Check the settings in `src/Config` in the Android project
 * Check for responsiveness
 
-* Cancel the notification after cashing out
-* Optional: better design after finishing the day
-* Optional: add sounds and effects when cashing out
+* Optional: Give a thought about allowing backup or not (?)
 
+* (Very?) Optional: Put on Google Play
+* (Very?) Optional: better design after finishing the day
 * (Very?) Optional: Check how to access properly the timezone on Android
 * (Very?) Optional: Notification ONLY when app is not on focus
-* (Very?) Optional: Display to user when the reward has been reached (???)
-* (Very?) Optional: Add animation for text when cashing out
-* (Very?) Optional: Keep trace of androidIds
+* (Very?) Optional: Display to user at what time the reward has been reached
 * (Very) Optional: delete step records on phone when sync with server
 * (Very?) Optional: Prevent cheating by tracking phoneId
 * (Very?) Optional: View a history of the rewards

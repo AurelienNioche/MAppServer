@@ -7,7 +7,7 @@ import numpy as np
 from MAppServer.settings import TIME_ZONE
 from user.models import User, Reward, Activity, Status
 
-from test_user__create import test_user__create
+from test_user__create import test_user_xp_like__create
 
 
 class RequestHandler:
@@ -22,7 +22,7 @@ class RequestHandler:
             u = User.objects.filter(username=r["username"]).first()
             if u is not None:
                 u.delete()
-                test_user__create()
+                test_user_xp_like__create()
             else:
                 print("User not found")
 
