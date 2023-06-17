@@ -165,7 +165,7 @@ def test_user_xp_like__create(
     starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
     base_chest_amount = 6
     daily_objective = 7000
-    n_days = 30
+    n_days = 20
 
     u = create_user(username=username,
                     experiment_name=experiment_name,
