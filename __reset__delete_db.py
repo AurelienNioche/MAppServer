@@ -16,6 +16,9 @@ def delete_db():
         os.system(f'dropdb {DB_NAME}')
         os.system('find . -path "*/migrations/*.py" -not -name "__init__.py" -delete')
         os.system('find . -path "*/migrations/*.pyc" -delete')
+        print("Database deleted.")
+    else:
+        print("No database deleted.")
 
 
 if __name__ == "__main__":

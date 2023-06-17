@@ -28,16 +28,13 @@ def main():
             print(f"user {i}: {u.email}")
 
             row = {
-                "user": u.email,
-                "experiment": u.experiment,
-                "condition": u.condition,
             }
             # for resp_idx, meaning in enumerate(q.possible_replies.all()):
             #     row.update({f"pos_reply_{resp_idx}": meaning.meaning})
             row_list.append(row)
 
     df = pd.DataFrame(row_list)
-    df.to_csv("data/data_full.csv")
+    df.to_csv("data/data.csv")
 
 
 if __name__ == "__main__":
