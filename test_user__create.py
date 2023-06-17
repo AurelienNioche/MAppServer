@@ -9,6 +9,7 @@ import pytz
 import numpy as np
 import datetime
 import uuid
+import json
 
 from user.models import User, Reward, Status
 from MAppServer.settings import TIME_ZONE
@@ -25,7 +26,43 @@ class Condition:
         return [k for k in cls.__dict__.keys() if k[0].isupper()]
 
 
-def create_rewards(user, starting_date, n_days):
+def create_user(
+    username,
+    experiment_name,
+    starting_date,
+    base_chest_amount,
+    daily_objective,
+):
+
+    u = User.objects.filter(username=username).first()
+    if u is not None:
+        print("Deleting previous user with the same name")
+        u.delete()
+
+    u = User.objects.create_user(
+        username=username,
+        experiment=experiment_name,
+        starting_date=starting_date,
+        base_chest_amount=base_chest_amount,
+        daily_objective=daily_objective,
+    )
+
+    if u is not None:
+        print("User successfully created")
+    else:
+        raise ValueError("Something went wrong! User not created")
+
+    return u
+
+
+def create_status(u):
+
+    status = Status(user=u, )
+    status.save()
+    print("Status successfully created")
+
+
+def create_rewards(user, starting_date, n_days, seed):
     """
     Constant: get money if reached the goal
     Proportional quantised: we have scales, based how much you walked you fall under scale. Ex.:
@@ -60,6 +97,7 @@ def create_rewards(user, starting_date, n_days):
         for _ in range(n_rep_cond):
             user_cond.append(getattr(Condition, cond))
 
+    np.random.seed(seed)
     # Shuffle conditions
     np.random.shuffle(user_cond)
 
@@ -79,21 +117,24 @@ def create_rewards(user, starting_date, n_days):
 
         elif cond == Condition.PROPORTIONAL_QUANTITY:
             n_rep = 5
-            objectives = np.cumsum([1400, ] * n_rep)
+            objectives = [1400, ] * n_rep
             amounts = [0.30, ] * n_rep
 
         elif cond == Condition.INCREMENTAL_OBJECTIVE:
             n_rep = 5
-            objectives = np.cumsum([700, 1050, 1400, 1750, 2100])
+            objectives = [700, 1050, 1400, 1750, 2100]
             amounts = [0.30, ] * n_rep
 
         elif cond == Condition.INCREMENTAL_REWARD_AMOUNT:
             n_rep = 5
-            objectives = np.cumsum([1400, ] * n_rep)
+            objectives = [1400, ] * n_rep
             amounts = [0.10, 0.20, 0.30, 0.40, 0.50]
 
         else:
             raise ValueError
+
+        cum_objectives = np.cumsum(objectives)
+        starting_at = [cum_objectives[i-1] if i > 0 else 0 for i in range(n_rep)]
 
         for i in range(n_rep):
             uuid_tag = uuid.uuid4()
@@ -103,14 +144,17 @@ def create_rewards(user, starting_date, n_days):
                 user=user,
                 date=current_date,
                 amount=amounts[i],
-                objective=objectives[i],
-                starting_at=[objectives[i-1] if i > 0 else [0, ]],
+                objective=cum_objectives[i],
+                starting_at=starting_at[i],
                 condition=cond,
                 serverTag=uuid_tag_str,
                 localTag=uuid_tag_str
             ).save()
 
         current_date += datetime.timedelta(days=1)
+
+    print("Reward successfully created. User conditions:", user_cond)
+
 
 @transaction.atomic
 def test_user__basic():
@@ -144,32 +188,42 @@ def test_user__basic():
         print("Test user successfully created")
     else:
         raise ValueError("Something went wrong! User not created")
-
-    for i in range(2):
-        Reward(
+    # ---------------------------------------------------------------
+    # Create rewards
+    objectives = [10, ] * 2
+    print(objectives)
+    cum_objectives = np.cumsum(objectives)
+    print(cum_objectives)
+    starting_at = [cum_objectives[i - 1] if i > 0 else 0 for i in range(len(objectives))]
+    print(starting_at)
+    for i in range(len(objectives)):
+        r = Reward(
             user=u,
             date=starting_date,
             amount=0.1,
-            objective=10*(i+1)
-        ).save()
+            objective=int(cum_objectives[i]),
+            starting_at=int(starting_at[i])
+        )
+        r.save()
+        print(json.dumps(r.to_dict(), indent=4))
 
+    print("Rewards successfully created")
+    # ---------------------------------------------------------------
+    # Create status
     status = Status(user=u, )
     status.save()
-
-    # current_date += datetime.timedelta(days=1)
+    print("Status successfully created")
 
 
 def test_user_xp_like__create(
-    seed=123,
-    username="123test"):
+        seed=123,
+        username="123test",
+        experiment_name="alpha-test"):
 
     starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-    experiment_name = "alpha-test"
     base_chest_amount = 6
     daily_objective = 7000
     n_days = 30
-
-    from test_michele__create import create_status, create_user, create_rewards
 
     u = create_user(username=username,
                     experiment_name=experiment_name,
@@ -185,5 +239,11 @@ def test_user_xp_like__create(
     assert Reward.objects.filter(user=u).count() > 0 and Status.objects.filter(user=u).count() > 0, "Something went wrong!"
 
 
+def create_test_user():
+    test_user__basic()
+    # test_user_xp_like__create()
+
+
 if __name__ == "__main__":
-    test_user_xp_like__create()
+    create_test_user()
+

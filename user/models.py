@@ -9,12 +9,12 @@ class User(AbstractUser):
 
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    experiment = models.TextField(blank=True, null=True)  # Should be optional only for the superuser
-    starting_date = models.DateField(default=None, null=True)  # Should be optional only for the superuser
-    base_chest_amount = models.FloatField(default=None, null=True)  # Should be optional only for the superuser
-    daily_objective = models.IntegerField(default=None, null=True)  # Should be optional only for the superuser
+    experiment = models.TextField(blank=True, null=False)  # Should be optional only for the superuser
+    starting_date = models.DateField(default=None, null=False)  # Should be optional only for the superuser
+    base_chest_amount = models.FloatField(default=None, null=False)  # Should be optional only for the superuser
+    daily_objective = models.IntegerField(default=None, null=False)  # Should be optional only for the superuser
 
-    REQUIRED_FIELDS = []  # removes email from REQUIRED_FIELDS
+    REQUIRED_FIELDS = ['experiment', 'starting_date', 'base_chest_amount', 'daily_objective']  # removes email from REQUIRED_FIELDS
 
 
 class Activity(models.Model):

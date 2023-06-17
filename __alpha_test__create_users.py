@@ -8,7 +8,8 @@ from test_user__create import test_user_xp_like__create
 
 
 if __name__ == "__main__":
-    test_user_xp_like__create(username="michele", seed=123)
-    test_user_xp_like__create(username="studentA", seed=1234)
-    test_user_xp_like__create(username="studentB", seed=12345)
+    experiment_name = "alpha-test-2"
+    test_user_xp_like__create(username="michele", seed=123, experiment_name=experiment_name)
+    test_user_xp_like__create(username="studentA", seed=1234, experiment_name=experiment_name)
+    test_user_xp_like__create(username="studentB", seed=12345, experiment_name=experiment_name)
 
