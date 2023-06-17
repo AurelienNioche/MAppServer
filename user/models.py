@@ -41,11 +41,11 @@ class Reward(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)                  # ex: ffe21
     date = models.DateField(default=None, null=False)                         # ex: 2023/03/28
     objective = models.IntegerField(default=None, null=False)                 # ex: 1400  (cumulative over the current day)
+    starting_at = models.IntegerField(default=None, null=False)
     amount = models.FloatField(default=None, null=False)                      # ex: 0.10  (not cumulative)
     condition = models.CharField(default=None, null=True, max_length=256)     # ex: "proportional_quantity"
 
     # Set after interaction with the user
-    accessible = models.BooleanField(default=False, null=False)        # Default need to be false
     objective_reached = models.BooleanField(default=False, null=False)
     objective_reached_dt = models.DateTimeField(default=None, null=True)
     cashed_out = models.BooleanField(default=False, null=False)
@@ -63,10 +63,10 @@ class Reward(models.Model):
             "id": self.id,
             "ts": ts,
             "objective": self.objective,
+            "startingAt": self.starting_at,
             "amount": self.amount,
             "objectiveReached": self.objective_reached,
             "cashedOut": self.cashed_out,
-            "accessible": self.accessible,
             "serverTag": initial_tag,
             "localTag": initial_tag
         }
@@ -81,14 +81,13 @@ class Status(models.Model):
     last_update_dt = models.DateTimeField(default=None, null=True)
     chest_amount = models.FloatField(default=None, null=True)
     daily_objective = models.IntegerField(default=None, null=True)
-    daily_objective_reached = models.BooleanField(default=False, null=True)
     state = models.CharField(default=None, null=True, max_length=256)
     objective = models.IntegerField(default=None, null=True)
-    objective_reached = models.BinaryField(default=None, null=True)
+    starting_at = models.IntegerField(default=None, null=True)
     amount = models.FloatField(default=None, null=True)
     day_of_the_month = models.CharField(default=None, null=True, max_length=256)
     day_of_the_week = models.CharField(default=None, null=True, max_length=256)
     month = models.CharField(default=None, null=True, max_length=256)
-    step_number_day = models.IntegerField(default=None, null=True)
-    step_number_reward = models.IntegerField(default=None, null=True)
+    step_number = models.IntegerField(default=None, null=True)
     reward_id = models.IntegerField(default=None, null=True)
+    error = models.CharField(default=None, null=True, max_length=256)

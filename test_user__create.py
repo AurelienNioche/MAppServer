@@ -104,6 +104,7 @@ def create_rewards(user, starting_date, n_days):
                 date=current_date,
                 amount=amounts[i],
                 objective=objectives[i],
+                starting_at=[objectives[i-1] if i > 0 else [0, ]],
                 condition=cond,
                 serverTag=uuid_tag_str,
                 localTag=uuid_tag_str
@@ -158,12 +159,12 @@ def test_user__basic():
     # current_date += datetime.timedelta(days=1)
 
 
-def test_user_xp_like__create():
+def test_user_xp_like__create(
+    seed=123,
+    username="123test"):
 
-    seed = 123
-    username = "123test"
     starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-    experiment_name = "Michele's students"
+    experiment_name = "alpha-test"
     base_chest_amount = 6
     daily_objective = 7000
     n_days = 30

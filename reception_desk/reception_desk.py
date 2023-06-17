@@ -57,6 +57,7 @@ class RequestHandler:
     @staticmethod
     def update(r):
 
+        subject = r["subject"]
         username = r["username"]
         progress_json = r["records"]
         un_sync_rewards_json = r["unSyncRewards"]
@@ -81,17 +82,34 @@ class RequestHandler:
                 step_last_boot = p["stepLastBoot"]
                 step_midnight = p["stepMidnight"]
 
-                if Activity.objects.filter(user=u, android_id=android_id).first() is None:
-                    dt = datetime.datetime.fromtimestamp(ts / 1000, tz=tz)
-                    dt_last_boot = datetime.datetime.fromtimestamp(ts_last_boot / 1000, tz=tz)
-                    a = Activity(
-                        android_id=android_id,
-                        user=u,
-                        dt=dt,
-                        dt_last_boot=dt_last_boot,
-                        step_last_boot=step_last_boot,
-                        step_midnight=step_midnight)
-                    a.save()
+                if Activity.objects.filter(user=u, android_id=android_id).first() is not None:
+                    print("Record already exists")
+                    continue
+
+                ts /= 1000
+                ts_last_boot /= 1000
+                dt = datetime.datetime.fromtimestamp(ts, tz=tz)
+                dt_last_boot = datetime.datetime.fromtimestamp(ts_last_boot, tz=tz)
+
+                if Activity.objects.filter(user=u, dt__day=dt.day, dt__month=dt.month, dt__year=dt.year,
+                                           step_midnight=step_midnight).first() is not None:
+                    print("A record with same number of steps for the same day already exists")
+                    continue
+
+                # Check if there isn't record too close in time from the same day, and delete it if so
+                # to_delete = Activity.objects.filter(user=u)\
+                #     .filter(dt__gt=dt - datetime.timedelta(minutes=2))\
+                #     .exclude(dt__lt=datetime.datetime.combine(dt.date(), datetime.datetime.min.time())).first()
+                # to_delete.delete()
+
+                a = Activity(
+                    android_id=android_id,
+                    user=u,
+                    dt=dt,
+                    dt_last_boot=dt_last_boot,
+                    step_last_boot=step_last_boot,
+                    step_midnight=step_midnight)
+                a.save()
 
         # ------------------------------------------------------------------------------------
 
@@ -119,15 +137,13 @@ class RequestHandler:
                 cashed_out = r_android["cashedOut"]
                 objective_reached_ts = r_android["objectiveReachedTs"]
                 cashed_out_ts = r_android["cashedOutTs"]
-                accessible = r_android["accessible"]  # Maybe not needed
 
                 reward = Reward.objects.filter(id=reward_id).first()
                 Reward.objects.filter(id=reward_id).update(**{
                     "objective_reached": objective_reached,
                     "cashed_out": cashed_out,
                     "objective_reached_dt": datetime.datetime.fromtimestamp(objective_reached_ts/1000, tz=tz),
-                    "cashed_out_dt": datetime.datetime.fromtimestamp(cashed_out_ts/1000, tz=tz),
-                    "accessible": accessible})
+                    "cashed_out_dt": datetime.datetime.fromtimestamp(cashed_out_ts/1000, tz=tz)})
 
                 sync_rewards_id.append(reward.id)
                 sync_rewards_server_tag.append(r_android["localTag"])  # Replace serverTag by localTag
@@ -135,37 +151,46 @@ class RequestHandler:
         # -------------------------------------------------------------------------------
 
         # Update the user status
-        #     "status": "{\"amount\":0.1,\"chestAmount\":6.1,\"dailyObjective\":7000,\"dailyObjectiveReached\":false,\"dayOfTheMonth\":\"13\",\"dayOfTheWeek\":\"Tuesday\",\"id\":9,\"month\":\"June\",\"objective\":10,\"rewardId\":5,\"state\":\"waitingForUserToRevealNewReward\",\"stepNumberDay\":0,\"stepNumberReward\":0}"
         status = json.loads(status)
-        amount = status["amount"]
+
+        step_number = status["stepNumber"]
         chest_amount = status["chestAmount"]
         daily_objective = status["dailyObjective"]
+
+        reward_id = status["rewardId"]
+        objective = status["objective"]
+        starting_at = status["startingAt"]
+        amount = status["amount"]
+
         day_of_the_month = status["dayOfTheMonth"]
         day_of_the_week = status["dayOfTheWeek"]
         month = status["month"]
-        objective = status["objective"]
-        reward_id = status["rewardId"]
+
         state = status["state"]
-        step_number_day = status["stepNumberDay"]
-        step_number_reward = status["stepNumberReward"]
+        error = status["error"]
 
         Status.objects.filter(user=u).update(**{
             "last_update_dt": datetime.datetime.now(tz=tz),
-            "amount": amount,
+
+            "step_number": step_number,
             "chest_amount": chest_amount,
             "daily_objective": daily_objective,
-            "objective": objective,
-            "state": state,
-            "step_number_reward": step_number_reward,
+
             "reward_id": reward_id,
-            "step_number_day": step_number_day,
+            "objective": objective,
+            "starting_at": starting_at,
+            "amount": amount,
+
             "day_of_the_month": day_of_the_month,
             "day_of_the_week": day_of_the_week,
             "month": month,
+
+            "state": state,
+            "error": error
         })
 
         return {
-            'subject': r["subject"],
+            'subject': subject,
             'lastRecordTimestampMillisecond': last_record_ts,
             'syncRewardsId': json.dumps(sync_rewards_id),
             'syncRewardsServerTag': json.dumps(sync_rewards_server_tag)

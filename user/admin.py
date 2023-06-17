@@ -14,7 +14,7 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = (
         "id", "get_user", "dt", "dt_last_boot", "step_last_boot", "step_midnight", "android_id")
 
-    @admin.display(ordering='username', description='username')
+    @admin.display(ordering='user__username', description='user__username')
     def get_user(self, obj):
         return obj.user.username
 
@@ -25,7 +25,7 @@ class RewardAdmin(admin.ModelAdmin):
         "id", "get_user", "date", "objective", "amount", "condition", "accessible",
         "objective_reached", "objective_reached_dt", "cashed_out", "cashed_out_dt", "serverTag", "localTag")
 
-    @admin.display(ordering='username', description='username')
+    @admin.display(ordering='user__username', description='user__username')
     def get_user(self, obj):
         return obj.user.username
 
@@ -36,11 +36,11 @@ class StatusAdmin(admin.ModelAdmin):
     list_display = (
         "id", "get_user", "last_update_dt",
         "amount", "chest_amount",
-        "daily_objective", "step_number_day",
-        "state", "reward_id", "objective", "step_number_reward",
-        "day_of_the_week", "day_of_the_month", "month")
+        "daily_objective",
+        "state", "reward_id", "objective", "step_number",
+        "day_of_the_week", "day_of_the_month", "month", "error")
 
-    @admin.display(ordering='username', description='username')
+    @admin.display(ordering='user__username', description='user__username')
     def get_user(self, obj):
         return obj.user.username
 
