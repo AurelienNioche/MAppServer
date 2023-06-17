@@ -182,15 +182,18 @@ def test_user_xp_like__create(
 
     print("-" * 20)
 
+
 @transaction.atomic
 def test_user__basic():
 
     seed = 123
     username = "123test"
     starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-    experiment_name = "Michele's students"
+    experiment_name = "not-even-an-alpha-test"
     base_chest_amount = 6
     daily_objective = 7000
+
+    print("BASIC TEST USER CREATION")
 
     # starting_date = utils.time.string_to_date(f"{starting_date}")
     # ending_date = starting_date + datetime.timedelta(days=n_days)
