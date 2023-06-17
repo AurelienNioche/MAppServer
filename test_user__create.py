@@ -52,6 +52,7 @@ def create_user(
     else:
         raise ValueError("Something went wrong! User not created")
 
+    print("-" * 20)
     return u
 
 
@@ -60,7 +61,7 @@ def create_status(u):
     status = Status(user=u, )
     status.save()
     print(f"Status successfully created for user {u.username}")
-    print("*" * 100)
+    print("-" * 20)
 
 
 def create_rewards(u, starting_date, n_days, seed):
@@ -104,8 +105,6 @@ def create_rewards(u, starting_date, n_days, seed):
 
     while len(user_cond) < n_days:
         user_cond.insert(0, Condition.CONSTANT)  # That's the + 1 day
-
-    print("User conditions", user_cond)
 
     # ---------------------------------------------------------------
 
@@ -155,7 +154,33 @@ def create_rewards(u, starting_date, n_days, seed):
         current_date += datetime.timedelta(days=1)
 
     print(f"Reward successfully created for user {u.username}. User conditions:", user_cond)
+    print("-" * 20)
 
+
+def test_user_xp_like__create(
+        seed=123,
+        username="123test",
+        experiment_name="alpha-test"):
+
+    starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+    base_chest_amount = 6
+    daily_objective = 7000
+    n_days = 30
+
+    u = create_user(username=username,
+                    experiment_name=experiment_name,
+                    starting_date=starting_date,
+                    base_chest_amount=base_chest_amount,
+                    daily_objective=daily_objective)
+    create_status(u=u)
+    create_rewards(u=u,
+                   starting_date=starting_date,
+                   n_days=n_days,
+                   seed=seed)
+
+    assert Reward.objects.filter(user=u).count() > 0 and Status.objects.filter(user=u).count() > 0, "Something went wrong!"
+
+    print("-" * 20)
 
 @transaction.atomic
 def test_user__basic():
@@ -215,30 +240,6 @@ def test_user__basic():
     status.save()
     print(f"Status successfully created for user {u.username}")
     print("*" * 100)
-
-
-def test_user_xp_like__create(
-        seed=123,
-        username="123test",
-        experiment_name="alpha-test"):
-
-    starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-    base_chest_amount = 6
-    daily_objective = 7000
-    n_days = 30
-
-    u = create_user(username=username,
-                    experiment_name=experiment_name,
-                    starting_date=starting_date,
-                    base_chest_amount=base_chest_amount,
-                    daily_objective=daily_objective)
-    create_status(u=u)
-    create_rewards(u=u,
-                   starting_date=starting_date,
-                   n_days=n_days,
-                   seed=seed)
-
-    assert Reward.objects.filter(user=u).count() > 0 and Status.objects.filter(user=u).count() > 0, "Something went wrong!"
 
 
 def create_test_user():
