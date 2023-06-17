@@ -48,7 +48,7 @@ def create_user(
     )
 
     if u is not None:
-        print("User successfully created")
+        print(f"User {u.username} successfully created")
     else:
         raise ValueError("Something went wrong! User not created")
 
@@ -59,10 +59,11 @@ def create_status(u):
 
     status = Status(user=u, )
     status.save()
-    print("Status successfully created")
+    print(f"Status successfully created for user {u.username}")
+    print("*" * 100)
 
 
-def create_rewards(user, starting_date, n_days, seed):
+def create_rewards(u, starting_date, n_days, seed):
     """
     Constant: get money if reached the goal
     Proportional quantised: we have scales, based how much you walked you fall under scale. Ex.:
@@ -141,7 +142,7 @@ def create_rewards(user, starting_date, n_days, seed):
             uuid_tag_str = str(uuid_tag)
 
             Reward(
-                user=user,
+                user=u,
                 date=current_date,
                 amount=amounts[i],
                 objective=cum_objectives[i],
@@ -153,7 +154,7 @@ def create_rewards(user, starting_date, n_days, seed):
 
         current_date += datetime.timedelta(days=1)
 
-    print("Reward successfully created. User conditions:", user_cond)
+    print(f"Reward successfully created for user {u.username}. User conditions:", user_cond)
 
 
 @transaction.atomic
@@ -232,7 +233,7 @@ def test_user_xp_like__create(
                     base_chest_amount=base_chest_amount,
                     daily_objective=daily_objective)
     create_status(u=u)
-    create_rewards(user=u,
+    create_rewards(u=u,
                    starting_date=starting_date,
                    n_days=n_days,
                    seed=seed)
