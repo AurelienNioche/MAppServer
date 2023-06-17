@@ -243,8 +243,8 @@ def test_user__basic():
 
 
 def create_test_user():
-    test_user__basic()
-    # test_user_xp_like__create()
+    # test_user__basic()
+    test_user_xp_like__create()
 
 
 if __name__ == "__main__":
