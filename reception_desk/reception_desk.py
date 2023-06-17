@@ -60,6 +60,12 @@ class RequestHandler:
 
         subject = r["subject"]
         username = r["username"]
+
+        u = User.objects.filter(username=username).first()
+        if u is None:
+            print(f"Ask for update but user not recognized: {username}. I'll skip this request.")
+            return
+
         progress_json = r["records"]
         un_sync_rewards_json = r["unSyncRewards"]
         status = r["status"]
