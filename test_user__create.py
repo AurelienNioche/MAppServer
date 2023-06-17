@@ -173,7 +173,7 @@ def test_user__basic():
 
     u = User.objects.filter(username=username).first()
     if u is not None:
-        print("Deleting old test user")
+        print(f"Deleting old test user {u.username}")
         u.delete()
 
     u = User.objects.create_user(
@@ -185,7 +185,7 @@ def test_user__basic():
     )
 
     if u is not None:
-        print("Test user successfully created")
+        print(f"User {u.username} successfully created")
     else:
         raise ValueError("Something went wrong! User not created")
     # ---------------------------------------------------------------
@@ -207,12 +207,13 @@ def test_user__basic():
         r.save()
         print(json.dumps(r.to_dict(), indent=4))
 
-    print("Rewards successfully created")
+    print(f"Rewards successfully created for user {u.username}")
     # ---------------------------------------------------------------
     # Create status
     status = Status(user=u, )
     status.save()
-    print("Status successfully created")
+    print(f"Status successfully created for user {u.username}")
+    print("*" * 100)
 
 
 def test_user_xp_like__create(
