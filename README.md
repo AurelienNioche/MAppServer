@@ -320,7 +320,6 @@ Add to config file:
 * Optional: Give a thought about allowing backup or not (?)
 
 * (Very?) Optional: Put on Google Play
-* (Very?) Optional: better design after finishing the day
 * (Very?) Optional: Check how to access properly the timezone on Android
 * (Very?) Optional: Notification ONLY when app is not on focus
 * (Very?) Optional: Display to user at what time the reward has been reached
