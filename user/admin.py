@@ -22,7 +22,7 @@ class ActivityAdmin(admin.ModelAdmin):
 @admin.register(Reward)
 class RewardAdmin(admin.ModelAdmin):
     list_display = (
-        "id", "get_user", "date", "objective", "amount", "condition",
+        "id", "get_user", "date", "starting_at", "objective", "amount", "condition",
         "objective_reached", "objective_reached_dt", "cashed_out", "cashed_out_dt", "serverTag", "localTag")
 
     @admin.display(ordering='user__username', description='user__username')
