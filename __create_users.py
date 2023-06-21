@@ -31,7 +31,7 @@ def main():
         if u is None:
             print(f"Creating user {username}")
 
-            dt = datetime.datetime.strptime(row.date, '%d-%m-%Y')
+            dt = datetime.datetime.strptime(row.date, '%d/%m/%Y')
             starting_date = pytz.timezone(TIME_ZONE).localize(dt).date()
 
             u = User(
