@@ -4,18 +4,19 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE",
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
+from MAppServer.settings import TIME_ZONE
+
 from django.db import transaction
 import pytz
-import numpy as np
 import datetime
 import uuid
-import json
 import pandas as pd
 
 from user.models import User, Reward, Status
 from utils.time import string_to_date
 
 
+@transaction.atomic
 def main():
 
     experiment_name = "experiment_June_2023"
@@ -29,10 +30,14 @@ def main():
         u = User.objects.filter(username=username).first()
         if u is None:
             print(f"Creating user {username}")
+
+            dt = datetime.datetime.strptime(row.date, '%Y-%m-%d')
+            starting_date = pytz.timezone(TIME_ZONE).localize(dt).date()
+
             u = User(
                 username=username,
                 experiment=experiment_name,
-                starting_date=string_to_date(row.date),
+                starting_date=starting_date,
                 base_chest_amount=base_chest_amount,
                 daily_objective=daily_objective,
             )
