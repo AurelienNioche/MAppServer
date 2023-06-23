@@ -15,7 +15,7 @@ else:
     print(f"I did not found user {username}")
 
 
-username = "2.80+E02"
+username = "2.80E+02"
 u = User.objects.filter(username=username).first()
 if u is not None:
     print(f"I found user {username}")
@@ -23,5 +23,5 @@ if u is not None:
     u.save()
 
 else:
-    print(f"I did not found user {u.username}")
+    print(f"I did not found user {username}")
 
