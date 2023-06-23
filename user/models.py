@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 import django.utils
 
@@ -14,6 +14,8 @@ class User(AbstractUser):
     starting_date = models.DateField(default=None, null=False)  # Should be optional only for the superuser
     base_chest_amount = models.FloatField(default=None, null=False)  # Should be optional only for the superuser
     daily_objective = models.IntegerField(default=None, null=False)  # Should be optional only for the superuser
+
+    objects = UserManager()
 
     REQUIRED_FIELDS = ['experiment', 'starting_date', 'base_chest_amount', 'daily_objective']  # removes email from REQUIRED_FIELDS
 
