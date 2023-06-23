@@ -16,7 +16,7 @@ def delete_db():
         os.system(f'dropdb {DB_NAME}')
         os.system('find . -path "*/migrations/*.py" -not -name "__init__.py" -delete')
         os.system('find . -path "*/migrations/*.pyc" -delete')
-        print("Database deleted.")
+        print("If there is no error message, the database should have been deleted.")
     else:
         print("No database deleted.")
 
