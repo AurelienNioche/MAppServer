@@ -5,7 +5,7 @@ from django.db import transaction
 import numpy as np
 
 from MAppServer.settings import TIME_ZONE
-from user.models import User, Reward, Activity, Status
+from user.models import User, Reward, Activity, Status, Log
 
 from test_user__create import create_test_user
 
@@ -195,6 +195,8 @@ class RequestHandler:
             "state": state,
             "error": error
         })
+
+        Log.objects.create(user=u)
 
         return {
             'subject': subject,

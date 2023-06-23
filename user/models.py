@@ -1,5 +1,6 @@
-from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.models import AbstractUser
 from django.db import models
+import django.utils
 
 import datetime
 import uuid
@@ -91,3 +92,9 @@ class Status(models.Model):
     step_number = models.IntegerField(default=None, null=True)
     reward_id = models.IntegerField(default=None, null=True)
     error = models.CharField(default=None, null=True, max_length=256)
+
+
+class Log(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    dt = models.DateTimeField(default=django.utils.timezone.now, null=False)
