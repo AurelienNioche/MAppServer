@@ -6,18 +6,21 @@ application = get_wsgi_application()
 
 from user.models import User, Reward, Status
 
-u = User.objects.filter(username="242K").first()
+username = "242K"
+u = User.objects.filter(username=username).first()
 if u is not None:
     print(f"I found user {u.username}")
 
 else:
-    print(f"I did not found user {u.username}")
+    print(f"I did not found user {username}")
 
 
-u = User.objects.filter(username="2.80+E02").first()
+username = "2.80+E02"
+u = User.objects.filter(username=username).first()
 if u is not None:
-    print(f"I found user {u.username}")
-    # u.username = "28E02..."
+    print(f"I found user {username}")
+    u.username = "28E1"
+    u.save()
 
 else:
     print(f"I did not found user {u.username}")
