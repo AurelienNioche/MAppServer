@@ -4,7 +4,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE",
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
-from user.models import User, Reward, Status
+from user.models import User
 
 username = "242K"
 u = User.objects.filter(username=username).first()
