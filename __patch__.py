@@ -17,9 +17,9 @@ if u is not None:
 
     rewards = Reward.objects.filter(user=u).order_by("date", "objective")
     for r in rewards:
-        to_print = f"r {r.id}: {r.date} {r.objective} {r.amount}"
+        to_print = f"r {r.id}: {r.date} {r.starting_at} {r.objective} {r.amount}"
         if r.objective_reached:
-            to_print += f"{r.objective_reached_dt}"
+            to_print += f" Done [{r.objective_reached_dt}]"
         print(to_print)
 
 else:
