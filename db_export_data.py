@@ -5,6 +5,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 import pandas as pd
+from django.utils import timezone
 
 from user.models import User
 
@@ -13,22 +14,32 @@ os.makedirs("data", exist_ok=True)
 
 
 def main():
+    date = timezone.now().date()
+    ts = f"{date.year}-{date.month}-{date.day}"
 
     users = User.objects.filter(is_superuser=False)
     for u in users:
+        print(f"Saving data for user {u.id}")
         row_list = []
         for r in u.reward_set.all():
-            print(f"user {u.id}")
-            print(r.id)
-            row = {
-            }
-            # for resp_idx, meaning in enumerate(q.possible_replies.all()):
-            #     row.update({f"pos_reply_{resp_idx}": meaning.meaning})
-
-            row_list.append(row)
+            row_list.append(r.to_csv_row())
 
         df = pd.DataFrame(row_list)
-        df.to_csv(f"data/{u.username}_rewards.csv")
+        df.to_csv(f"data/{u.username}_rewards_{ts}.csv")
+
+        row_list = []
+        for a in u.activity_set.all():
+            row_list.append(a.to_csv_row())
+
+        df = pd.DataFrame(row_list)
+        df.to_csv(f"data/{u.username}_activities_{ts}.csv")
+
+        # row_list = []
+        # for a in u.activity_set.all():
+        #     row_list.append(a.to_csv_row())
+        #
+        # df = pd.DataFrame(row_list)
+        # df.to_csv(f"data/{u.username}_activities.csv")
 
 
 if __name__ == "__main__":
