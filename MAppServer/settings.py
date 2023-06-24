@@ -144,6 +144,8 @@ EMAIL_PORT = 587
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
+APP_VERSION = "2023.06.24"
+
 # os.makedirs('tmp', exist_ok=True)
 #
 # LOGGING = {

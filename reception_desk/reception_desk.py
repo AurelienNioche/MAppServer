@@ -4,7 +4,7 @@ import pytz
 from django.db import transaction
 import numpy as np
 
-from MAppServer.settings import TIME_ZONE
+from MAppServer.settings import TIME_ZONE, APP_VERSION
 from user.models import User, Reward, Activity, Status, Log, Interaction
 
 from test_user__create import create_test_user
@@ -15,6 +15,12 @@ class RequestHandler:
 
     @staticmethod
     def login(r):
+
+        app_version = r["appVersion"]
+        if "appVersion" not in r or r["appVersion"] != APP_VERSION:
+            print(f"App version {app_version} not supported. I'll skip this request.")
+            return
+
         print(f"User {r['username']} is trying to connect...")
 
         username = r["username"]
@@ -66,6 +72,11 @@ class RequestHandler:
 
     @staticmethod
     def update(r):
+
+        app_version = r["appVersion"]
+        if "appVersion" not in r or r["appVersion"] != APP_VERSION:
+            print(f"App version {app_version} not supported. I'll skip this request.")
+            return
 
         subject = r["subject"]
         username = r["username"]
