@@ -7,9 +7,16 @@ application = get_wsgi_application()
 from MAppServer.settings import DATABASES
 
 
-DB_NAME = DATABASES['default']['NAME']
+def create_db():
 
-os.system(f"createdb {DB_NAME} --owner postgres")
-os.system("python3 manage.py makemigrations")
-os.system("python3 manage.py makemigrations user")
-os.system("python3 manage.py migrate")
+    db_name = DATABASES['default']['NAME']
+
+    os.system(f"createdb {db_name} --owner postgres")
+    os.system("python3 manage.py makemigrations")
+    os.system("python3 manage.py makemigrations user")
+    os.system("python3 manage.py migrate")
+
+
+if __name__ == "__main__":
+
+    create_db()

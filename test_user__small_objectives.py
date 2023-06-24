@@ -8,17 +8,16 @@ from django.db import transaction
 import pytz
 import numpy as np
 import datetime
-import uuid
 import json
 
 from user.models import User, Reward, Status
 from MAppServer.settings import TIME_ZONE
 
 @transaction.atomic
-def test_user__seb():
+def create_user__small_objectives():
 
     seed = 123
-    username = "sebastian"
+    username = "smallobj"
     starting_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
     experiment_name = "not-even-an-alpha-test"
     base_chest_amount = 0
@@ -49,20 +48,19 @@ def test_user__seb():
     # ---------------------------------------------------------------
     # Create rewards
     objectives = [50, ] * 6
-    print(objectives)
+    print("objectives", objectives)
     cum_objectives = np.cumsum(objectives)
-    print(cum_objectives)
+    print("cumulative objectives", cum_objectives)
     starting_at = [cum_objectives[i - 1] if i > 0 else 0 for i in range(len(objectives))]
-    print(starting_at)
+    print("starting at", starting_at)
     for i in range(len(objectives)):
-        r = Reward(
+        r = Reward.objects.create(
             user=u,
-            date=starting_date,
+            date=starting_date.date(),
             amount=0.1,
             objective=int(cum_objectives[i]),
             starting_at=int(starting_at[i])
         )
-        r.save()
         print(json.dumps(r.to_dict(), indent=4))
 
     print(f"Rewards successfully created for user {u.username}")
@@ -75,5 +73,5 @@ def test_user__seb():
 
 
 if __name__ == "__main__":
-    test_user__seb()
+    create_user__small_objectives()
 

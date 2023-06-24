@@ -5,9 +5,10 @@ from django.db import transaction
 import numpy as np
 
 from MAppServer.settings import TIME_ZONE
-from user.models import User, Reward, Activity, Status, Log
+from user.models import User, Reward, Activity, Status, Log, Interaction
 
 from test_user__create import create_test_user
+from test_user__small_objectives import create_user__small_objectives
 
 
 class RequestHandler:
@@ -19,14 +20,22 @@ class RequestHandler:
         username = r["username"]
         reset_user = r["resetUser"]
 
-        if reset_user and r["username"] == "123test":
-            print("Resetting user")
-            u = User.objects.filter(username=username).first()
-            if u is not None:
-                u.delete()
-                create_test_user()
-            else:
-                print("User not found")
+        if reset_user:
+            if username == "123test":
+                print("Resetting user")
+                u = User.objects.filter(username=username).first()
+                if u is not None:
+                    u.delete()
+                    create_test_user()
+                else:
+                    print("User not found")
+            elif username == "smallobj":
+                u = User.objects.filter(username=username).first()
+                if u is not None:
+                    u.delete()
+                    create_user__small_objectives()
+                else:
+                    print("User not found")
 
         u = User.objects.filter(username=username).first()
         ok = u is not None
@@ -66,7 +75,8 @@ class RequestHandler:
             print(f"Ask for update but user not recognized: {username}. I'll skip this request.")
             return
 
-        progress_json = r["records"]
+        activities_json = r["records"]
+        interactions_json = r["interactions"]
         un_sync_rewards_json = r["unSyncRewards"]
         status = r["status"]
 
@@ -78,18 +88,18 @@ class RequestHandler:
 
         # --------------------------------------------------------------------------------------------
 
-        # Record any new progress
-        progress = json.loads(progress_json)
+        # Record any new activity
+        activities = json.loads(activities_json)
         with transaction.atomic():
-            for p in progress:
+            for a in activities:
 
-                android_id = p["id"]
-                ts = p["ts"]
-                ts_last_boot = p["tsLastBoot"]
-                step_last_boot = p["stepLastBoot"]
-                step_midnight = p["stepMidnight"]
+                android_id = a["id"]
+                ts = a["ts"]
+                ts_last_boot = a["tsLastBoot"]
+                step_last_boot = a["stepLastBoot"]
+                step_midnight = a["stepMidnight"]
 
-                if Activity.objects.filter(user=u, android_id=android_id).first() is not None:
+                if u.activity_set.filter(android_id=android_id).first() is not None:
                     print("Record already exists")
                     continue
 
@@ -98,8 +108,8 @@ class RequestHandler:
                 dt = datetime.datetime.fromtimestamp(ts, tz=tz)
                 dt_last_boot = datetime.datetime.fromtimestamp(ts_last_boot, tz=tz)
 
-                if Activity.objects.filter(user=u, dt__day=dt.day, dt__month=dt.month, dt__year=dt.year,
-                                           step_midnight=step_midnight).first() is not None:
+                if u.activity_set.filter(dt__day=dt.day, dt__month=dt.month, dt__year=dt.year,
+                                         step_midnight=step_midnight).first() is not None:
                     print("A record with same number of steps for the same day already exists")
                     continue
 
@@ -109,31 +119,66 @@ class RequestHandler:
                 #     .exclude(dt__lt=datetime.datetime.combine(dt.date(), datetime.datetime.min.time())).first()
                 # to_delete.delete()
 
-                a = Activity(
-                    android_id=android_id,
+                Activity.objects.create(
                     user=u,
+                    android_id=android_id,
                     dt=dt,
                     dt_last_boot=dt_last_boot,
                     step_last_boot=step_last_boot,
                     step_midnight=step_midnight)
-                a.save()
+
+        # --------------------------------------------------------------------------------------------
+
+        # Record any new interaction
+        interactions = json.loads(interactions_json)
+        with transaction.atomic():
+            for i in interactions:
+
+                android_id = i["id"]
+                ts = i["ts"]
+                event = i["event"]
+
+                if u.interaction_set.filter(android_id=android_id).first() is not None:
+                    print("Record already exists")
+                    continue
+
+                ts /= 1000
+                dt = datetime.datetime.fromtimestamp(ts, tz=tz)
+
+                Interaction.objects.create(
+                    user=u,
+                    dt=dt,
+                    event=event,
+                    android_id=android_id)
 
         # ------------------------------------------------------------------------------------
 
-        # Get the latest user_progress timestamp
-        if Activity.objects.count():
-            last_record = Activity.objects.latest("dt")
+        # Get the latest `Activity` timestamp
+        user_activities = u.activity_set
+        if user_activities.count():
+            last_record = user_activities.latest("dt")
             last_record_dt = last_record.dt
         else:
             last_record_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
 
-        last_record_ts = last_record_dt.timestamp() * 1000
+        last_activity_ts = int(last_record_dt.timestamp() * 1000)
+
+        # ------------------------------------------------------------------------------------
+        # Get the latest `Interaction` timestamp
+        user_interactions = u.interaction_set
+        if user_interactions.count():
+            last_interaction = user_interactions.latest("dt")
+            last_interaction_dt = last_interaction.dt
+        else:
+            last_interaction_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
+
+        last_interaction_ts = int(last_interaction_dt.timestamp() * 1000)
 
         # ------------------------------------------------------------------------------------------------
 
         un_sync_rewards = json.loads(un_sync_rewards_json)
         sync_rewards_id = []
-        sync_rewards_server_tag = []
+        sync_rewards_tag = []
 
         with transaction.atomic():
 
@@ -144,16 +189,26 @@ class RequestHandler:
                 cashed_out = r_android["cashedOut"]
                 objective_reached_ts = r_android["objectiveReachedTs"]
                 cashed_out_ts = r_android["cashedOutTs"]
+                revealed_by_button = r_android["revealedByButton"]
+                revealed_by_notification = r_android["revealedByNotification"]
+                revealed_ts = r_android["revealedTs"]
+                android_tag = r_android["localTag"]
 
-                reward = Reward.objects.filter(id=reward_id).first()
                 Reward.objects.filter(id=reward_id).update(**{
                     "objective_reached": objective_reached,
                     "cashed_out": cashed_out,
-                    "objective_reached_dt": datetime.datetime.fromtimestamp(objective_reached_ts/1000, tz=tz),
-                    "cashed_out_dt": datetime.datetime.fromtimestamp(cashed_out_ts/1000, tz=tz)})
+                    "objective_reached_dt": datetime.datetime.fromtimestamp(
+                        objective_reached_ts / 1000, tz=tz),
+                    "cashed_out_dt": datetime.datetime.fromtimestamp(
+                        cashed_out_ts / 1000, tz=tz),
+                    "revealed_dt": datetime.datetime.fromtimestamp(
+                        revealed_ts / 1000, tz=tz),
+                    "revealed_by_button": revealed_by_button,
+                    "revealed_by_notification": revealed_by_notification,
+                })
 
-                sync_rewards_id.append(reward.id)
-                sync_rewards_server_tag.append(r_android["localTag"])  # Replace serverTag by localTag
+                sync_rewards_id.append(reward_id)
+                sync_rewards_tag.append(android_tag)
 
         # -------------------------------------------------------------------------------
 
@@ -200,9 +255,10 @@ class RequestHandler:
 
         return {
             'subject': subject,
-            'lastRecordTimestampMillisecond': last_record_ts,
+            'lastActivityTimestampMillisecond': last_activity_ts,
+            'lastInteractionTimestampMillisecond': last_interaction_ts,
             'syncRewardsId': json.dumps(sync_rewards_id),
-            'syncRewardsServerTag': json.dumps(sync_rewards_server_tag)
+            'syncRewardsTag': json.dumps(sync_rewards_tag)
         }
 
 # --------------------------------------- #

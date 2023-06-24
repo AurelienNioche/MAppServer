@@ -9,7 +9,6 @@ from MAppServer.settings import TIME_ZONE
 from django.db import transaction
 import pytz
 import datetime
-import uuid
 import pandas as pd
 
 from user.models import User, Reward, Status
@@ -22,10 +21,12 @@ def main():
     base_chest_amount = 6.00
     daily_objective = 7000
     csv = pd.read_csv("data/user_creation/rewards.csv")
+    csv["user"] = csv["user"].astype(str)
 
     for row in csv.itertuples():
         print(row)
         username = row.user
+        assert len(username) == 4 or username.startswith("michele"), f"Username {username} is not 4 characters long."
         dt = datetime.datetime.strptime(row.date, '%d/%m/%Y')
         date = pytz.timezone(TIME_ZONE).localize(dt).date()
         u = User.objects.filter(username=username).first()
@@ -46,9 +47,6 @@ def main():
             print(f"Status successfully created for user {u.username}")
             print("-" * 20)
 
-        uuid_tag = uuid.uuid4()
-        uuid_tag_str = str(uuid_tag)
-
         objective = row.objective
         r = Reward.objects.filter(user=u, date=date, objective=objective).first()
         if r is None:
@@ -58,9 +56,7 @@ def main():
                 amount=row.amount,
                 objective=objective,
                 starting_at=row.starting_at,
-                condition=row.condition,
-                serverTag=uuid_tag_str,
-                localTag=uuid_tag_str)
+                condition=row.condition)
             r.save()
             print(f"Reward {r.id} successfully created for user {u.username}.")
         else:

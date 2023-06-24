@@ -1,9 +1,8 @@
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
-import django.utils
+from django.utils import timezone
 
 import datetime
-import uuid
 
 
 class User(AbstractUser):
@@ -37,6 +36,16 @@ class Activity(models.Model):
     step_last_boot = models.IntegerField(default=None, null=False)
     step_midnight = models.IntegerField(default=None, null=False)
 
+    def to_csv_row(self):
+        return {
+            "user": self.user.username,
+            "id": self.id,
+            "dt": self.dt,
+            "dt_last_bool": self.dt_last_boot,
+            "step_last_boot": self.step_last_boot,
+            "step_midnight": self.step_midnight,
+        }
+
 
 class Reward(models.Model):
 
@@ -53,15 +62,14 @@ class Reward(models.Model):
     objective_reached_dt = models.DateTimeField(default=None, null=True)
     cashed_out = models.BooleanField(default=False, null=False)
     cashed_out_dt = models.DateTimeField(default=None, null=True)
-
-    serverTag = models.CharField(default=None, null=True, max_length=256)
-    localTag = models.CharField(default=None, null=True, max_length=256)
+    revealed_by_button = models.BooleanField(default=False, null=False)
+    revealed_by_notification = models.BooleanField(default=False, null=False)
+    revealed_dt = models.DateTimeField(default=None, null=True)
 
     def to_dict(self):
         # Take midday as timestamp
         ts = datetime.datetime.fromordinal(self.date.toordinal()) + datetime.timedelta(days=0.5)
         ts = int(ts.timestamp() * 1000)
-        initial_tag = str(uuid.uuid4())
         return {
             "id": self.id,
             "ts": ts,
@@ -70,8 +78,22 @@ class Reward(models.Model):
             "amount": self.amount,
             "objectiveReached": self.objective_reached,
             "cashedOut": self.cashed_out,
-            "serverTag": initial_tag,
-            "localTag": initial_tag
+        }
+
+    def to_csv_row(self):
+
+        return {
+            "user": self.user.username,
+            "id": self.id,
+            "date": self.date,
+            "starting_at": self.starting_at,
+            "objective": self.objective,
+            "amount": self.amount,
+            "objective_reached": self.objective_reached,
+            "objective_reached_dt": self.objective_reached_dt,
+            "cashed_out": self.cashed_out,
+            "cashed_out_dt": self.cashed_out_dt,
+            "condition": self.condition,
         }
 
 
@@ -99,4 +121,28 @@ class Status(models.Model):
 class Log(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    dt = models.DateTimeField(default=django.utils.timezone.now, null=False)
+    dt = models.DateTimeField(default=timezone.now, null=False)
+
+    def to_csv_row(self):
+        return {
+            "user": self.user.username,
+            "id": self.id,
+            "dt": self.dt,
+        }
+
+
+class Interaction(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    dt = models.DateTimeField(default=None, null=False)
+    event = models.CharField(default=None, null=True, max_length=256)
+    android_id = models.IntegerField(default=None, null=False)
+
+    def to_csv_row(self):
+        return {
+            "user": self.user.username,
+            "id": self.id,
+            "dt": self.dt,
+            "event": self.event,
+        }
+
