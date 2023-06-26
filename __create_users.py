@@ -11,6 +11,8 @@ import pytz
 import datetime
 import pandas as pd
 
+from MAppServer.settings import USER_CREATION_CSV_PATH
+
 from user.models import User, Reward, Status
 
 
@@ -20,13 +22,13 @@ def main():
     experiment_name = "experiment_June_2023"
     base_chest_amount = 6.00
     daily_objective = 7000
-    csv = pd.read_csv("data/user_creation/rewards.csv")
+    csv = pd.read_csv(f"{USER_CREATION_CSV_PATH}")
     csv["user"] = csv["user"].astype(str)
 
     for row in csv.itertuples():
         print(row)
         username = row.user
-        assert len(username) == 4 or username.startswith("michele"), f"Username {username} is not 4 characters long."
+        # assert len(username) == 4 or username.startswith("michele"), f"Username {username} is not 4 characters long."
         dt = datetime.datetime.strptime(row.date, '%d/%m/%Y')
         date = pytz.timezone(TIME_ZONE).localize(dt).date()
         u = User.objects.filter(username=username).first()

@@ -1,5 +1,7 @@
 import os
 
+from MAppServer.settings import USER_CREATION_CSV_PATH, SERVER_USER, SERVER_DOMAIN, SERVER_BASE_DIR
+
 # scp local_file user@remote_host:remote_file
-out = os.system("scp data/user_creation/rewards.csv aurelien@pearse.dcs.gla.ac.uk:DjangoApps/MAppServer/data/user_creation/rewards.csv")
+out = os.system(f"scp {USER_CREATION_CSV_PATH} {SERVER_USER}@{SERVER_DOMAIN}:{SERVER_BASE_DIR}/{USER_CREATION_CSV_PATH}")
 print(out)

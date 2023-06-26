@@ -34,8 +34,6 @@ ALLOWED_HOSTS = [
     "*"
 ]
 
-CSRF_TRUSTED_ORIGINS = ["http://pearse.dcs.gla.ac.uk"]
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -145,6 +143,13 @@ EMAIL_PORT = 587
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 APP_VERSION = "2023.06.24"
+
+USER_CREATION_CSV_PATH = os.path.join(BASE_DIR, "data/user_creation/rewards_2023-06-26_10-53.csv")
+SERVER_BASE_DIR = "DjangoApps/MAppServer"
+SERVER_USER = "aurelien"
+SERVER_DOMAIN = "pearse.dcs.gla.ac.uk"
+
+CSRF_TRUSTED_ORIGINS = [f"http://{SERVER_DOMAIN}"]
 
 # os.makedirs('tmp', exist_ok=True)
 #
