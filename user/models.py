@@ -117,6 +117,24 @@ class Status(models.Model):
     reward_id = models.IntegerField(default=None, null=True)
     error = models.CharField(default=None, null=True, max_length=256)
 
+    def to_dic(self): return {
+        "id": self.id,
+        "user": self.user.username,
+        "lastUpdateDt": self.last_update_dt,
+        "chestAmount": self.chest_amount,
+        "dailyObjective": self.daily_objective,
+        "state": self.state,
+        "objective": self.objective,
+        "startingAt": self.starting_at,
+        "amount": self.amount,
+        "dayOfTheMonth": self.day_of_the_month,
+        "dayOfTheWeek": self.day_of_the_week,
+        "month": self.month,
+        "stepNumber": self.step_number,
+        "rewardId": self.reward_id,
+        "error": self.error,
+    }
+
 
 class Log(models.Model):
 
