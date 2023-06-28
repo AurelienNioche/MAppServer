@@ -22,7 +22,9 @@ def main():
     experiment_name = "experiment_June_2023"
     base_chest_amount = 6.00
     daily_objective = 7000
+
     csv = pd.read_csv(f"{USER_CREATION_CSV_PATH}")
+
     csv["user"] = csv["user"].astype(str)
 
     for row in csv.itertuples():
@@ -66,4 +68,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    out = input(f"Are you sure you want to create the users using the file `{USER_CREATION_CSV_PATH}`? (Y/N)")
+    if out.lower() in ('y', 'yes'):
+        main()
