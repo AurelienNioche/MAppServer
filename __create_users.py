@@ -10,24 +10,50 @@ from django.db import transaction
 import pytz
 import datetime
 import pandas as pd
+import glob
 
 from MAppServer.settings import USER_CREATION_CSV_PATH
-
 from user.models import User, Reward, Status
 
 
-@transaction.atomic
-def main():
+def identify_which_files_to_use():
+
+    for file in glob.glob(f"{USER_CREATION_CSV_PATH}/*.csv"):
+        print(f"Considering the file `{file}`...")
+
+        df = pd.read_csv(file)
+        df["user"] = df["user"].astype(str)
+
+        should_create_users = True
+        for user in df.user.unique():
+            u = User.objects.filter(username=user).first()
+            if u is None:
+                print(f"User {user} does not exist.")
+
+            else:
+                print(f"User {user} exists. I'll skip this file.")
+                should_create_users = False
+                break
+
+        if should_create_users:
+            out = input(f"Are you sure you want to create the users using the file `{file}`? (Y/N)")
+            if out.lower() in ('y', 'yes'):
+                print(f"Creating users from the file {file}...")
+                print("-" * 20)
+                create_users_from_df(df)
+            else:
+                print(f"Skipping the file {file}.")
+
+        print("-" * 20)
+
+
+def create_users_from_df(df):
 
     experiment_name = "experiment_June_2023"
     base_chest_amount = 6.00
     daily_objective = 7000
 
-    csv = pd.read_csv(f"{USER_CREATION_CSV_PATH}")
-
-    csv["user"] = csv["user"].astype(str)
-
-    for row in csv.itertuples():
+    for row in df.itertuples():
         print(row)
         username = row.user
         # assert len(username) == 4 or username.startswith("michele"), f"Username {username} is not 4 characters long."
@@ -66,8 +92,10 @@ def main():
         else:
             print(f"Reward {r.id} NOT CREATED for {u.username}: a similar reward already existed.")
 
+@transaction.atomic
+def main():
+    identify_which_files_to_use()
+
 
 if __name__ == "__main__":
-    out = input(f"Are you sure you want to create the users using the file `{USER_CREATION_CSV_PATH}`? (Y/N)")
-    if out.lower() in ('y', 'yes'):
-        main()
+    main()

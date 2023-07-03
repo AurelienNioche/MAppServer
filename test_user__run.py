@@ -14,7 +14,7 @@ class Bot(websocket.WebSocketApp):
     wss://samoa.dcs.gla.ac.uk/mapp/ws
     """
     def __init__(
-            self, url="wss://samoa.dcs.gla.ac.uk/mapp/ws",
+            self, url="ws://192.168.0.14:8080/ws",
             username="123test",
             waiting_time=2):
 

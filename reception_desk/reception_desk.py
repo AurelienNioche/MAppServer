@@ -16,9 +16,8 @@ class RequestHandler:
     @staticmethod
     def login(r):
 
-        app_version = r["appVersion"]
         if "appVersion" not in r or r["appVersion"] != APP_VERSION:
-            print(f"App version {app_version} not supported. I'll skip this request.")
+            print(f"App version {r['appVersion']} not supported. I'll skip this request.")
             return
 
         print(f"User {r['username']} is trying to connect...")
