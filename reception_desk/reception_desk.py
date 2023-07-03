@@ -52,7 +52,7 @@ class RequestHandler:
             rewards = [r.to_dict() for r in rewards]
 
             total_reward_cashed_out = np.sum(
-                Reward.objects.filter(user=u, cashed_out=True).values_list("amount", flat=True))
+                u.reward_set.filter(cashed_out=True).values_list("amount", flat=True))
             chest_amount = u.base_chest_amount + total_reward_cashed_out
             daily_objective = u.daily_objective
         else:

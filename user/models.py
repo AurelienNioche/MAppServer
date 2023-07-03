@@ -70,6 +70,9 @@ class Reward(models.Model):
         # Take midday as timestamp
         ts = datetime.datetime.fromordinal(self.date.toordinal()) + datetime.timedelta(days=0.5)
         ts = int(ts.timestamp() * 1000)
+        cashed_out_ts = int(self.cashed_out_dt.timestamp()*1000) if self.cashed_out_dt is not None else -1
+        revealed_ts = int(self.revealed_dt.timestamp()*1000) if self.revealed_dt is not None else -1
+        objective_reached_ts = int(self.objective_reached_dt.timestamp()*1000) if self.objective_reached_dt is not None else -1
         return {
             "id": self.id,
             "ts": ts,
@@ -77,7 +80,12 @@ class Reward(models.Model):
             "startingAt": self.starting_at,
             "amount": self.amount,
             "objectiveReached": self.objective_reached,
+            "objectiveReachedTs": objective_reached_ts,
             "cashedOut": self.cashed_out,
+            "cashedOutTs": cashed_out_ts,
+            "revealedTs": revealed_ts,
+            "revealedByButton": self.revealed_by_button,
+            "revealedByNotification": self.revealed_by_notification,
         }
 
     def to_csv_row(self):
@@ -117,7 +125,7 @@ class Status(models.Model):
     reward_id = models.IntegerField(default=None, null=True)
     error = models.CharField(default=None, null=True, max_length=256)
 
-    def to_dic(self): return {
+    def to_dict(self): return {
         "id": self.id,
         "user": self.user.username,
         "lastUpdateDt": self.last_update_dt,
