@@ -10,11 +10,15 @@ import websocket
 
 class Bot(websocket.WebSocketApp):
     """
-    ws://192.168.0.101:8000/ws
+    ws://192.168.0.14:8080/ws
     wss://samoa.dcs.gla.ac.uk/mapp/ws
+
+    ws://172.30.182.147:8080/ws
+
+    // wss://cf9d-130-209-150-254.ngrok-free.app/ws
     """
     def __init__(
-            self, url="ws://192.168.0.14:8080/ws",
+            self, url="wss://cf9d-130-209-150-254.ngrok-free.app/ws",
             username="123test",
             waiting_time=2):
 
