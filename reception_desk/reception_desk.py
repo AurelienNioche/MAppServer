@@ -18,7 +18,8 @@ class RequestHandler:
 
         if "appVersion" not in r:
             return
-        if ("appVersion" in r and r["appVersion"] != APP_VERSION):
+
+        if r["appVersion"] != APP_VERSION:
             print(f"App version {r['appVersion']} not supported. I'll skip this request.")
             return
 
