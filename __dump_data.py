@@ -16,13 +16,11 @@ from tqdm import tqdm
 now = timezone.now()
 now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
 
-folder = f"{SERVER_DATA_DIR}/{now_str}"
+folder = f"{SERVER_DATA_DIR}/dump_{now_str}"
 os.makedirs(folder, exist_ok=True)
 
 
 def main():
-    date = timezone.now().date()
-    ts = f"{date.year}-{date.month}-{date.day}"
 
     users = User.objects.filter(is_superuser=False)
     for u in tqdm(users):
@@ -32,31 +30,32 @@ def main():
             row_list.append(r.to_csv_row())
 
         df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_rewards_{ts}.csv")
+        df.to_csv(f"{folder}/{u.username}_rewards_{now_str}.csv")
 
         row_list = []
         for a in u.activity_set.all():
             row_list.append(a.to_csv_row())
 
         df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_activities_{ts}.csv")
+        df.to_csv(f"{folder}/{u.username}_activities_{now_str}.csv")
 
         row_list = []
         for entry in u.interaction_set.all():
             row_list.append(entry.to_csv_row())
 
         df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_interactions_{ts}.csv")
+        df.to_csv(f"{folder}/{u.username}_interactions_{now_str}.csv")
 
         row_list = []
         for entry in u.log_set.all():
             row_list.append(entry.to_csv_row())
 
         df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_logs_{ts}.csv")
+        df.to_csv(f"{folder}/{u.username}_logs_{now_str}.csv")
+
+    print(f"Done! Data exported in folder `{folder}`.")
 
 
 if __name__ == "__main__":
 
     main()
-    print("Done!")
