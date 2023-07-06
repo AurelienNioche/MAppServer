@@ -144,7 +144,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 APP_VERSION = "2023.06.24"
 
-USER_CREATION_CSV_PATH = "data/user_creation/rewards_2023-06-28_14-49.csv"
+USER_CREATION_CSV_PATH = "data/user_creation"
 SERVER_BASE_DIR = "DjangoApps/MAppServer"
 SERVER_USER = "aurelien"
 SERVER_DOMAIN = "pearse.dcs.gla.ac.uk"

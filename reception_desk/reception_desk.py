@@ -16,9 +16,11 @@ class RequestHandler:
     @staticmethod
     def login(r):
 
-        app_version = r["appVersion"]
-        if "appVersion" not in r or r["appVersion"] != APP_VERSION:
-            print(f"App version {app_version} not supported. I'll skip this request.")
+        if "appVersion" not in r:
+            return
+
+        if r["appVersion"] != APP_VERSION:
+            print(f"App version {r['appVersion']} not supported. I'll skip this request.")
             return
 
         print(f"User {r['username']} is trying to connect...")
@@ -101,6 +103,9 @@ class RequestHandler:
 
         # Record any new activity
         activities = json.loads(activities_json)
+        n_already_existing_with_same_id = 0
+        n_already_existing_with_same_number_same_day = 0
+        n_added = 0
         with transaction.atomic():
             for a in activities:
 
@@ -111,7 +116,7 @@ class RequestHandler:
                 step_midnight = a["stepMidnight"]
 
                 if u.activity_set.filter(android_id=android_id).first() is not None:
-                    print("Record already exists")
+                    n_already_existing_with_same_id += 1
                     continue
 
                 ts /= 1000
@@ -121,7 +126,7 @@ class RequestHandler:
 
                 if u.activity_set.filter(dt__day=dt.day, dt__month=dt.month, dt__year=dt.year,
                                          step_midnight=step_midnight).first() is not None:
-                    print("A record with same number of steps for the same day already exists")
+                    n_already_existing_with_same_number_same_day += 1
                     continue
 
                 # Check if there isn't record too close in time from the same day, and delete it if so
@@ -137,6 +142,14 @@ class RequestHandler:
                     dt_last_boot=dt_last_boot,
                     step_last_boot=step_last_boot,
                     step_midnight=step_midnight)
+                n_added += 1
+
+        if n_already_existing_with_same_id > 0:
+            print(f"Found {n_already_existing_with_same_id} already existing with the same ID")
+        if n_already_existing_with_same_number_same_day > 0:
+            print(f"Found {n_already_existing_with_same_number_same_day} already existing with the same number and day")
+
+        print(f"Added {n_added} new records")
 
         # --------------------------------------------------------------------------------------------
 
