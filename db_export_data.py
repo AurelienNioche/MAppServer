@@ -10,6 +10,7 @@ from django.utils import timezone
 from MAppServer.settings import SERVER_DATA_DIR
 
 from user.models import User
+from tqdm import tqdm
 
 
 now = timezone.now()
@@ -24,8 +25,8 @@ def main():
     ts = f"{date.year}-{date.month}-{date.day}"
 
     users = User.objects.filter(is_superuser=False)
-    for u in users:
-        print(f"Saving data for user {u.id}")
+    for u in tqdm(users):
+        # print(f"Saving data for user {u.id}")
         row_list = []
         for r in u.reward_set.all():
             row_list.append(r.to_csv_row())
