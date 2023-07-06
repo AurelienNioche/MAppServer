@@ -5,7 +5,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 import pandas as pd
-from django.utils import timezone
+from datetime import datetime
 
 from MAppServer.settings import SERVER_DATA_DIR
 
@@ -13,7 +13,7 @@ from user.models import User
 from tqdm import tqdm
 
 
-now = timezone.now()
+now = datetime.now()
 now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
 
 folder = f"{SERVER_DATA_DIR}/dump_{now_str}"
