@@ -144,10 +144,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 APP_VERSION = "2023.06.24"
 
-USER_CREATION_CSV_PATH = "data/user_creation"
 SERVER_BASE_DIR = "DjangoApps/MAppServer"
 SERVER_USER = "aurelien"
 SERVER_DOMAIN = "pearse.dcs.gla.ac.uk"
+SERVER_DATA_DIR = "data"
+
+USER_CREATION_CSV_PATH = "data/user_creation"
+LOCAL_DATA_BACKUP = "data/data_backup"
 
 CSRF_TRUSTED_ORIGINS = [f"http://{SERVER_DOMAIN}"]
 
