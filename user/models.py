@@ -41,7 +41,7 @@ class Activity(models.Model):
             "user": self.user.username,
             "id": self.id,
             "dt": self.dt,
-            "dt_last_bool": self.dt_last_boot,
+            "dt_last_boot": self.dt_last_boot,
             "step_last_boot": self.step_last_boot,
             "step_midnight": self.step_midnight,
         }
