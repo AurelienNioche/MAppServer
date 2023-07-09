@@ -51,24 +51,33 @@ class RequestHandler:
             u.last_login = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             u.save()
             print(f"User {username} successfully connected")
-            rewards = Reward.objects.filter(user=u).order_by("date", "objective")
-            rewards = [r.to_dict() for r in rewards]
+            rewards = u.reward_set.order_by("date", "objective")
+            rewards_android = [r.to_android_dict() for r in rewards]
 
             total_reward_cashed_out = np.sum(
                 u.reward_set.filter(cashed_out=True).values_list("amount", flat=True))
             chest_amount = u.base_chest_amount + total_reward_cashed_out
             daily_objective = u.daily_objective
+
+            status = u.status_set.first().to_android_dict()
+
+            step_records = u.activity_set.order_by("dt", "step_midnight")
+            step_records_android = [s.to_android_dict() for s in step_records]
+
         else:
             print(f"User {r['username']} not recognized!")
             # Just to be sure that the variables are defined for passing to json decoder
-            chest_amount, daily_objective, rewards = 0, 0, []
+            chest_amount, daily_objective, rewards_android, status, step_records_android = \
+                0, 0, [], {}, []
 
         return {
             "subject": r["subject"],
             "ok": ok,
             "dailyObjective": daily_objective,
             "chestAmount": chest_amount,
-            "rewardList": json.dumps(rewards),
+            "rewardList": json.dumps(rewards_android),
+            "stepRecordList": json.dumps(step_records_android),
+            "status": json.dumps(status),
             "username": username,
         }
 
