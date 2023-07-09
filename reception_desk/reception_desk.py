@@ -59,7 +59,12 @@ class RequestHandler:
             chest_amount = u.base_chest_amount + total_reward_cashed_out
             daily_objective = u.daily_objective
 
-            status = u.status_set.first().to_android_dict()
+            status = u.status_set.first()
+            status.daily_objective = u.daily_objective
+            status.chest_amount = chest_amount
+            status.error = ""  # Reset error if any error was present
+            status.save()
+            status_android = status.to_android_dict()
 
             step_records = u.activity_set.order_by("dt", "step_midnight")
             step_records_android = [s.to_android_dict() for s in step_records]
@@ -77,7 +82,7 @@ class RequestHandler:
             "chestAmount": chest_amount,
             "rewardList": json.dumps(rewards_android),
             "stepRecordList": json.dumps(step_records_android),
-            "status": json.dumps(status),
+            "status": json.dumps(status_android),
             "username": username,
         }
 

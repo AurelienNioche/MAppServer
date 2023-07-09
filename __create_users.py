@@ -92,6 +92,7 @@ def create_users_from_df(df):
         else:
             print(f"Reward {r.id} NOT CREATED for {u.username}: a similar reward already existed.")
 
+
 @transaction.atomic
 def main():
     identify_which_files_to_use()
