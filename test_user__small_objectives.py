@@ -71,6 +71,9 @@ def create_user__small_objectives():
     print(f"Status successfully created for user {u.username}")
     print("*" * 100)
 
+    print("User created successfully")
+    print(f"Starting date: {starting_date}")
+
 
 if __name__ == "__main__":
     create_user__small_objectives()
