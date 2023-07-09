@@ -61,7 +61,7 @@ def create_user__small_objectives():
             objective=int(cum_objectives[i]),
             starting_at=int(starting_at[i])
         )
-        print(json.dumps(r.to_dict(), indent=4))
+        print(json.dumps(r.to_android_dict(), indent=4))
 
     print(f"Rewards successfully created for user {u.username}")
     # ---------------------------------------------------------------

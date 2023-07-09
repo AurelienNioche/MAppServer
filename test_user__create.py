@@ -234,7 +234,7 @@ def test_user__basic():
             starting_at=int(starting_at[i])
         )
         r.save()
-        print(json.dumps(r.to_dict(), indent=4))
+        print(json.dumps(r.to_android_dict(), indent=4))
 
     print(f"Rewards successfully created for user {u.username}")
     # ---------------------------------------------------------------
