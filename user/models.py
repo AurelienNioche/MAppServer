@@ -46,6 +46,17 @@ class Activity(models.Model):
             "step_midnight": self.step_midnight,
         }
 
+    def to_android_dict(self):
+        ts = int(self.dt.timestamp() * 1000)
+        ts_last_boot = int(self.dt_last_boot.timestamp() * 1000)
+        return {
+            "id": self.android_id,  # Not id because server id and android id are different
+            "ts": ts,
+            "tsLastBoot": ts_last_boot,
+            "stepLastBoot": self.step_last_boot,
+            "stepMidnight": self.step_midnight
+        }
+
 
 class Reward(models.Model):
 
@@ -66,10 +77,10 @@ class Reward(models.Model):
     revealed_by_notification = models.BooleanField(default=False, null=False)
     revealed_dt = models.DateTimeField(default=None, null=True)
 
-    def to_dict(self):
+    def to_android_dict(self):
         # Take midday as timestamp
-        ts = datetime.datetime.fromordinal(self.date.toordinal()) + datetime.timedelta(days=0.5)
-        ts = int(ts.timestamp() * 1000)
+        ts_python = datetime.datetime.fromordinal(self.date.toordinal()) + datetime.timedelta(days=0.5)
+        ts = int(ts_python.timestamp() * 1000)
         cashed_out_ts = int(self.cashed_out_dt.timestamp()*1000) if self.cashed_out_dt is not None else -1
         revealed_ts = int(self.revealed_dt.timestamp()*1000) if self.revealed_dt is not None else -1
         objective_reached_ts = int(self.objective_reached_dt.timestamp()*1000) if self.objective_reached_dt is not None else -1
@@ -128,20 +139,36 @@ class Status(models.Model):
     def to_dict(self): return {
         "id": self.id,
         "user": self.user.username,
-        "lastUpdateDt": self.last_update_dt,
-        "chestAmount": self.chest_amount,
-        "dailyObjective": self.daily_objective,
+        "last_update_dt": self.last_update_dt,
+        "chest_amount": self.chest_amount,
+        "daily_objective": self.daily_objective,
         "state": self.state,
         "objective": self.objective,
-        "startingAt": self.starting_at,
+        "starting_at": self.starting_at,
         "amount": self.amount,
-        "dayOfTheMonth": self.day_of_the_month,
-        "dayOfTheWeek": self.day_of_the_week,
+        "day_of_the_month": self.day_of_the_month,
+        "day_of_the_week": self.day_of_the_week,
         "month": self.month,
-        "stepNumber": self.step_number,
-        "rewardId": self.reward_id,
+        "step_number": self.step_number,
+        "reward_id": self.reward_id,
         "error": self.error,
     }
+
+    def to_android_dict(self): return {
+            "id": self.id,
+            "state": self.state,
+            "dailyObjective": self.daily_objective,
+            "chestAmount": self.chest_amount,
+            "dayOfTheWeek": self.day_of_the_week,
+            "dayOfTheMonth": self.day_of_the_month,
+            "month": self.month,
+            "stepNumber": self.step_number,
+            "rewardId": self.reward_id,
+            "objective": self.objective,
+            "startingAt": self.starting_at,
+            "amount": self.amount,
+            "error": self.error,
+        }
 
 
 class Log(models.Model):
