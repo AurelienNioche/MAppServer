@@ -139,3 +139,5 @@ dmypy.json
 /data/
 
 /log/
+
+.DS_Store
