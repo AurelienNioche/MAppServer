@@ -198,4 +198,3 @@ class Interaction(models.Model):
             "dt": self.dt,
             "event": self.event,
         }
-
