@@ -1,26 +1,35 @@
 import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE",
-                      "MAppServer.settings")
-from django.core.wsgi import get_wsgi_application
-application = get_wsgi_application()
+
+try:
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE",
+                          "MAppServer.settings")
+    from django.core.wsgi import get_wsgi_application
+    application = get_wsgi_application()
+except:
+    os.chdir(os.path.expanduser("~/DjangoApps/MAppServer"))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE",
+                          "MAppServer.settings")
+    from django.core.wsgi import get_wsgi_application
+
+    application = get_wsgi_application()
 
 import pandas as pd
+import json
 from datetime import datetime
 
-from MAppServer.settings import SERVER_DATA_DIR
+from MAppServer.settings import SERVER_DATA_DIR, LATEST_DUMP_FOLDER
 
 from user.models import User
 from tqdm import tqdm
 
 
-now = datetime.now()
-now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-
-folder = f"{SERVER_DATA_DIR}/dump_{now_str}"
-os.makedirs(folder, exist_ok=True)
-
-
 def main():
+
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+
+    folder = f"{SERVER_DATA_DIR}/dump_{now_str}"
+    os.makedirs(folder, exist_ok=True)
 
     users = User.objects.filter(is_superuser=False)
     for u in tqdm(users):
@@ -54,6 +63,11 @@ def main():
         df.to_csv(f"{folder}/{u.username}_logs_{now_str}.csv")
 
     print(f"Done! Data exported in folder `{folder}`.")
+
+    if os.path.exists(LATEST_DUMP_FOLDER):
+        os.unlink(LATEST_DUMP_FOLDER)
+    os.symlink(folder, LATEST_DUMP_FOLDER)
+    print(f"Symlink created (`{LATEST_DUMP_FOLDER}`).")
 
 
 if __name__ == "__main__":
