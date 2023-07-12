@@ -1,7 +1,6 @@
 import os
 
-from MAppServer.settings import SERVER_USER, SERVER_DOMAIN, SERVER_BASE_DIR
+from MAppServer.settings import SERVER_USER, SERVER_DOMAIN
 
 out = os.system(f"cat __dump_data.py | ssh {SERVER_USER}@{SERVER_DOMAIN} python3 - ")
-print(out)
-# os.system("python3 __download_data.py")
+os.system("python3 __download_data.py")

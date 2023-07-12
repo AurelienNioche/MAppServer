@@ -4,7 +4,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE",
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
-from test_user__create import test_user_xp_like__create
+from __test_user__create import test_user_xp_like__create
 
 
 if __name__ == "__main__":

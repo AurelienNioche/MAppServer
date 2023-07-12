@@ -7,8 +7,8 @@ import numpy as np
 from MAppServer.settings import TIME_ZONE, APP_VERSION
 from user.models import User, Reward, Activity, Status, Log, Interaction
 
-from test_user__create import create_test_user
-from test_user__small_objectives import create_user__small_objectives
+from __test_user__create import create_test_user
+from __test_user__small_objectives import create_user__small_objectives
 
 
 class RequestHandler:

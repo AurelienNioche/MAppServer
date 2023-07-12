@@ -144,14 +144,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 APP_VERSION = "2023.06.24"
 
-SERVER_BASE_DIR = os.path.expanduser("~/DjangoApps/MAppServer")
+SERVER_RELATIVE_BASE_DIR = "DjangoApps/MAppServer"
+SERVER_BASE_DIR = os.path.expanduser(f"~/{SERVER_RELATIVE_BASE_DIR}")
 SERVER_DATA_DIR = f"{SERVER_BASE_DIR}/data"
 SERVER_USER = "aurelien"
 SERVER_DOMAIN = "pearse.dcs.gla.ac.uk"
 
 USER_CREATION_CSV_PATH = "data/user_creation"
 LOCAL_DATA_BACKUP = "data/data_backup"
-LATEST_DUMP_FOLDER = f"{SERVER_DATA_DIR}/dump_latest"
+LATEST_DUMP_FOLDER = f"{SERVER_BASE_DIR}/data/dump_latest"
+LATEST_DUMP_FOLDER__RELATIVE = f"{SERVER_RELATIVE_BASE_DIR}/data/dump_latest"
+DOWNLOAD_FOLDER = f"{LOCAL_DATA_BACKUP}/download"
 
 CSRF_TRUSTED_ORIGINS = [f"http://{SERVER_DOMAIN}"]
 
