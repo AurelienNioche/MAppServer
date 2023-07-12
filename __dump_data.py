@@ -39,10 +39,10 @@ def main():
         for entry_type in ("reward", "activity", "interaction", "log"):
             row_list = []
             for r in getattr(u, f"{entry_type}_set").all():
-                row_list.append(r.to_csv_row(date_format="%Y-%m-%d %H:%M:%S.%f%z"))
+                row_list.append(r.to_csv_row())
 
             df = pd.DataFrame(row_list)
-            df.to_csv(f"{folder}/{u.username}_{entry_type}_{now_str}.csv")
+            df.to_csv(f"{folder}/{u.username}_{entry_type}_{now_str}.csv", date_format="%Y-%m-%d %H:%M:%S.%f%z")
 
     print(f"Done! Data exported in folder `{folder}`.")
 
