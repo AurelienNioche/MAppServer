@@ -14,7 +14,6 @@ except:
     application = get_wsgi_application()
 
 import pandas as pd
-import json
 from datetime import datetime
 
 from MAppServer.settings import SERVER_DATA_DIR, LATEST_DUMP_FOLDER
@@ -33,6 +32,8 @@ def main():
 
     users = User.objects.filter(is_superuser=False)
     for u in tqdm(users):
+
+        u.to_csv(folder, now_str)
         # print(f"Saving data for user {u.id}")
         row_list = []
         for r in u.reward_set.all():

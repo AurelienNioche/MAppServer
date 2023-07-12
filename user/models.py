@@ -18,6 +18,16 @@ class User(AbstractUser):
 
     REQUIRED_FIELDS = ['experiment', 'starting_date', 'base_chest_amount', 'daily_objective']  # removes email from REQUIRED_FIELDS
 
+    def to_csv_row(self):
+        return {
+            "user": self.username,
+            "date_joined": self.date_joined,
+            "experiment": self.experiment,
+            "base_chest_amount": self.base_chest_amount,
+            "daily_objective": self.daily_objective,
+            "starting_date": self.starting_date
+        }
+
 
 class Activity(models.Model):
 
