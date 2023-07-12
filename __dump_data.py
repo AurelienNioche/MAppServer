@@ -31,9 +31,11 @@ def main():
     os.makedirs(folder, exist_ok=True)
 
     users = User.objects.filter(is_superuser=False)
-    for u in tqdm(users):
 
-        u.to_csv(folder, now_str)
+    df = pd.DataFrame([u.to_csv_row() for u in users])
+    df.to_csv(f"{folder}/users_{now_str}.csv")
+
+    for u in tqdm(users):
         # print(f"Saving data for user {u.id}")
         row_list = []
         for r in u.reward_set.all():
