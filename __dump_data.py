@@ -36,34 +36,13 @@ def main():
     df.to_csv(f"{folder}/users_{now_str}.csv")
 
     for u in tqdm(users):
+        for entry_type in ("reward", "activity", "interaction", "log"):
+            row_list = []
+            for r in getattr(u, f"{entry_type}_set").all():
+                row_list.append(r.to_csv_row())
 
-        row_list = []
-        for r in u.reward_set.all():
-            row_list.append(r.to_csv_row())
-
-        df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_rewards_{now_str}.csv")
-
-        row_list = []
-        for a in u.activity_set.all():
-            row_list.append(a.to_csv_row())
-
-        df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_activities_{now_str}.csv")
-
-        row_list = []
-        for entry in u.interaction_set.all():
-            row_list.append(entry.to_csv_row())
-
-        df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_interactions_{now_str}.csv")
-
-        row_list = []
-        for entry in u.log_set.all():
-            row_list.append(entry.to_csv_row())
-
-        df = pd.DataFrame(row_list)
-        df.to_csv(f"{folder}/{u.username}_logs_{now_str}.csv")
+            df = pd.DataFrame(row_list)
+            df.to_csv(f"{folder}/{u.username}_{entry_type}_{now_str}.csv")
 
     print(f"Done! Data exported in folder `{folder}`.")
 
