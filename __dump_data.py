@@ -16,7 +16,7 @@ except:
 import pandas as pd
 from datetime import datetime
 
-from MAppServer.settings import SERVER_DATA_DIR, LATEST_DUMP_FOLDER
+from MAppServer.settings import SERVER_DATA_DIR, SERVER_LATEST_DUMP_PATH
 
 from user.models import User
 from tqdm import tqdm
@@ -46,10 +46,10 @@ def main():
 
     print(f"Done! Data exported in folder `{folder}`.")
 
-    if os.path.exists(LATEST_DUMP_FOLDER):
-        os.unlink(LATEST_DUMP_FOLDER)
-    os.symlink(folder, LATEST_DUMP_FOLDER)
-    print(f"Symlink created (`{LATEST_DUMP_FOLDER}`).")
+    if os.path.exists(SERVER_LATEST_DUMP_PATH):
+        os.unlink(SERVER_LATEST_DUMP_PATH)
+    os.symlink(folder, SERVER_LATEST_DUMP_PATH)
+    print(f"Symlink created (`{SERVER_LATEST_DUMP_PATH}`).")
 
 
 if __name__ == "__main__":
