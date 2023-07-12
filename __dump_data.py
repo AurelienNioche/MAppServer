@@ -36,7 +36,7 @@ def main():
     df.to_csv(f"{folder}/users_{now_str}.csv")
 
     for u in tqdm(users):
-        # print(f"Saving data for user {u.id}")
+
         row_list = []
         for r in u.reward_set.all():
             row_list.append(r.to_csv_row())
