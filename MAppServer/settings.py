@@ -160,6 +160,11 @@ DOWNLOAD_FOLDER_ABSOLUTE_PATH = f"{BASE_DIR}/{DATA_FOLDER}/{LATEST_DUMP_FOLDER}"
 
 CSRF_TRUSTED_ORIGINS = [f"http://{SERVER_DOMAIN}"]
 
+# Celery settings
+CELERY_TIMEZONE = "Europe/London"
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+
 # os.makedirs('tmp', exist_ok=True)
 #
 # LOGGING = {
