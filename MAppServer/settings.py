@@ -37,6 +37,7 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'django_celery_beat',
     'reception_desk.apps.ReceptionDeskConfig',
     'user.apps.UserConfig',
     'channels',
