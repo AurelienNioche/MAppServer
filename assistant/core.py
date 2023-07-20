@@ -1,19 +1,10 @@
 import numpy as np
 import itertools
 from scipy.special import gammaln, digamma
+from datetime import datetime
 
-HORIZON = 24
-N_TIMESTEP = 24
-N_ACTION = 4
-
-N_VELOCITY = 100
-
-N_POSITION = 100
-
-POSITIONS = np.linspace(0, 7000, N_POSITION)
-VELOCITIES = np.linspace(-100, 100, N_VELOCITY)
-
-LOG_BIASED_PRIOR = np.log(np.ones(N_POSITION) / N_POSITION)
+from config import HORIZON, N_TIMESTEP, N_ACTION, N_VELOCITY, N_POSITION, POSITIONS, VELOCITIES, LOG_BIASED_PRIOR
+from . models import Velocity, Position, Alpha
 
 
 def kl_div_dirichlet(alpha_coeff, beta_coeff):
@@ -38,9 +29,19 @@ def q_transition_velocity(alpha):
     return alpha / sum_col[:, :, :, :, np.newaxis]
 
 
-def get_new_action():
+def get_new_action(user):
     # return np.random.randint(0, N_ACTION)
     number_of_step = 0
+
+    now = datetime.now()
+
+    alpha_tapvv = np.zeros((N_TIMESTEP, N_ACTION, N_POSITION, N_VELOCITY, N_VELOCITY))
+    for e in Alpha.objects.filter(user=user):
+        alpha_tapvv[:, :, :, :] += e.alpha
+
+    velocity = Velocity.objects.filter(user=user, dt__date=now.date).order_by('-timestep_idx')[0].velocity
+
+    _get_new_action(number_of_step, velocity, alpha_tavv, transition_position_pvp, timestep)
 
 
 def _get_new_action(number_of_step, velocity, alpha_tavv, transition_position_pvp, timestep):
@@ -94,6 +95,7 @@ def _get_new_action(number_of_step, velocity, alpha_tavv, transition_position_pv
         best_action_plan_indexes = np.arange(n_action_plan)[val == val.max()]
         selected_action_plan_idx = np.random.choice(best_action_plan_indexes)
         a = action_plan[selected_action_plan_idx][0]
+
         return a
 
 
