@@ -3,8 +3,9 @@ import itertools
 from scipy.special import gammaln, digamma
 from datetime import datetime
 
-from config import HORIZON, N_TIMESTEP, N_ACTION, N_VELOCITY, N_POSITION, POSITIONS, VELOCITIES, LOG_BIASED_PRIOR
-from . models import Velocity, Position, Alpha
+from config import HORIZON, N_TIMESTEP, N_ACTION, N_VELOCITY, N_POSITION, POSITIONS, VELOCITIES, LOG_BIASED_PRIOR, \
+    TRANSITION_POSITION_PVP
+from . models import Velocity, Alpha, Position
 
 
 def kl_div_dirichlet(alpha_coeff, beta_coeff):
@@ -31,7 +32,6 @@ def q_transition_velocity(alpha):
 
 def get_new_action(user):
     # return np.random.randint(0, N_ACTION)
-    number_of_step = 0
 
     now = datetime.now()
 
@@ -39,14 +39,19 @@ def get_new_action(user):
     for e in Alpha.objects.filter(user=user):
         alpha_tapvv[:, :, :, :] += e.alpha
 
-    velocity = Velocity.objects.filter(user=user, dt__date=now.date).order_by('-timestep_idx')[0].velocity
+    velocity_entry = Velocity.objects.filter(user=user, dt__date=now.date).order_by('-timestep_idx').first()
+    position_entry = Position.objects.filter(user=user, dt__date=now.date).order_by('-timestep_idx').first()
 
-    _get_new_action(number_of_step, velocity, alpha_tavv, transition_position_pvp, timestep)
+    velocity = velocity_entry.velocity
+    timestep = velocity_entry.timestep_idx
+    position = position_entry.position
+
+    _get_new_action(position=position, velocity=velocity, alpha_tapvv=alpha_tapvv, timestep=timestep)
 
 
-def _get_new_action(number_of_step, velocity, alpha_tavv, transition_position_pvp, timestep):
+def _get_new_action(position, velocity, alpha_tapvv, timestep):
 
-    pos_idx = np.absolute(POSITIONS - number_of_step).argmin()
+    pos_idx = np.absolute(POSITIONS - position).argmin()
     v_idx = np.absolute(VELOCITIES - velocity).argmin()
 
     for t_idx, t in enumerate(timestep):
@@ -59,13 +64,13 @@ def _get_new_action(number_of_step, velocity, alpha_tavv, transition_position_pv
         pragmatic = np.zeros(n_action_plan)
         epistemic = np.zeros(n_action_plan)
 
-        q = q_transition_velocity(alpha_tavv)
+        q = q_transition_velocity(alpha_tapvv)
 
         # Compute value of each action plan
         for ap_index, ap in enumerate(action_plan):
 
             # Initialize the rollout model
-            alpha_tavv_rollout = alpha_tavv.copy()
+            alpha_tapvv_rollout = alpha_tapvv.copy()
             qv = np.zeros(N_VELOCITY)
             qv[v_idx] = 1.
             qps = np.zeros((h, N_POSITION))
@@ -77,19 +82,20 @@ def _get_new_action(number_of_step, velocity, alpha_tavv, transition_position_pv
                 rollout_t_index = t_idx + h_idx
 
                 # Update beliefs about the transition model
-                alpha_tavv_rollout[rollout_t_index, a, :, :] += qv[:, np.newaxis] * q[rollout_t_index, a, :, :]
+                alpha_tapvv_rollout[rollout_t_index, a, pos_idx, :, :] += \
+                    qv[:, np.newaxis] * q[rollout_t_index, a, pos_idx, :, :]
 
                 # Update beliefs about the velocity and position
                 # [IMPORTANT: updating the beliefs transition model BEFORE doing this]
                 qv = qv @ q[rollout_t_index, a, :, :]
-                qp = qp @ (qv @ transition_position_pvp)
+                qp = qp @ (qv @ TRANSITION_POSITION_PVP)
                 qps[h_idx] = qp
 
             # Compute the pragmatic value of the action plan
             pragmatic[ap_index] = np.sum(qps @ LOG_BIASED_PRIOR)
 
             # Compute the KL divergence between the model after the rollout and the current model
-            epistemic[ap_index] = kl_div_dirichlet(alpha_tavv_rollout, alpha_tavv)
+            epistemic[ap_index] = kl_div_dirichlet(alpha_tapvv_rollout, alpha_tapvv)
 
         val = pragmatic + epistemic
         best_action_plan_indexes = np.arange(n_action_plan)[val == val.max()]
