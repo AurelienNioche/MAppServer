@@ -72,7 +72,7 @@ class RequestHandler:
         else:
             print(f"User {r['username']} not recognized!")
             # Just to be sure that the variables are defined for passing to json decoder
-            chest_amount, daily_objective, rewards_android, status, step_records_android = \
+            chest_amount, daily_objective, rewards_android, status_android, step_records_android = \
                 0, 0, [], {}, []
 
         return {
