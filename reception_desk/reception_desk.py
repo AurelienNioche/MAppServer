@@ -3,12 +3,41 @@ import datetime
 import pytz
 from django.db import transaction
 import numpy as np
+import re
 
 from MAppServer.settings import TIME_ZONE, APP_VERSION
-from user.models import User, Reward, Activity, Status, Log, Interaction
+from user.models import User, Challenge, Activity, Status, ConnectionToServer, Interaction
 
 from __test_user__create import create_test_user
 from __test_user__small_objectives import create_user__small_objectives
+
+CAMEL_TO_SNAKE_PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
+
+# ----------- Utils ------------------------------------------
+
+def camel_to_snake(s):
+    return CAMEL_TO_SNAKE_PATTERN.sub('_', s).lower()
+
+
+def convert_android_timestamp_to_datetime(ts):
+    tz = pytz.timezone(TIME_ZONE)
+    return datetime.datetime.fromtimestamp(ts / 1000, tz=tz)
+
+
+def convert_android_dict_to_python_dict(d):
+    python_dict = {}
+    for k, v in d.items():
+        k = camel_to_snake(k)
+        if "ts" in k:
+            k.replace("ts", "dt")
+            v = convert_android_timestamp_to_datetime(v)
+        elif k == "id":
+            k = "android_id"
+        python_dict[k] = v
+    return python_dict
+
+
+# ----------------------------------------------------
 
 
 class RequestHandler:
@@ -57,12 +86,12 @@ class RequestHandler:
             total_reward_cashed_out = np.sum(
                 u.reward_set.filter(cashed_out=True).values_list("amount", flat=True))
             chest_amount = u.base_chest_amount + total_reward_cashed_out
-            daily_objective = u.daily_objective
 
             status = u.status_set.first()
             status.daily_objective = u.daily_objective
             status.chest_amount = chest_amount
             status.error = ""  # Reset error if any error was present
+
             status.save()
             status_android = status.to_android_dict()
 
@@ -72,14 +101,11 @@ class RequestHandler:
         else:
             print(f"User {r['username']} not recognized!")
             # Just to be sure that the variables are defined for passing to json decoder
-            chest_amount, daily_objective, rewards_android, status, step_records_android = \
-                0, 0, [], {}, []
+            rewards_android, status_android, step_records_android = [], {}, []
 
         return {
             "subject": r["subject"],
             "ok": ok,
-            "dailyObjective": daily_objective,
-            "chestAmount": chest_amount,
             "rewardList": json.dumps(rewards_android),
             "stepRecordList": json.dumps(step_records_android),
             "status": json.dumps(status_android),
@@ -104,10 +130,8 @@ class RequestHandler:
 
         activities_json = r["records"]
         interactions_json = r["interactions"]
-        un_sync_rewards_json = r["unSyncRewards"]
+        unsynced_challenges_json = r["unsyncedChallenges"]  # TODO: rename in Android project
         status = r["status"]
-
-        tz = pytz.timezone(TIME_ZONE)
 
         u = User.objects.filter(username=username).first()
         if u is None:
@@ -133,10 +157,8 @@ class RequestHandler:
                     n_already_existing_with_same_id += 1
                     continue
 
-                ts /= 1000
-                ts_last_boot /= 1000
-                dt = datetime.datetime.fromtimestamp(ts, tz=tz)
-                dt_last_boot = datetime.datetime.fromtimestamp(ts_last_boot, tz=tz)
+                dt = convert_android_timestamp_to_datetime(ts)
+                dt_last_boot = convert_android_timestamp_to_datetime(ts_last_boot)
 
                 if u.activity_set.filter(dt__day=dt.day, dt__month=dt.month, dt__year=dt.year,
                                          step_midnight=step_midnight).first() is not None:
@@ -170,24 +192,15 @@ class RequestHandler:
         # Record any new interaction
         interactions = json.loads(interactions_json)
         with transaction.atomic():
-            for i in interactions:
-
-                android_id = i["id"]
-                ts = i["ts"]
-                event = i["event"]
+            for entry in interactions:
 
                 if u.interaction_set.filter(android_id=android_id).first() is not None:
                     print("Record already exists")
                     continue
 
-                ts /= 1000
-                dt = datetime.datetime.fromtimestamp(ts, tz=tz)
-
                 Interaction.objects.create(
                     user=u,
-                    dt=dt,
-                    event=event,
-                    android_id=android_id)
+                    **convert_android_dict_to_python_dict(entry))
 
         # ------------------------------------------------------------------------------------
 
@@ -214,89 +227,36 @@ class RequestHandler:
 
         # ------------------------------------------------------------------------------------------------
 
-        un_sync_rewards = json.loads(un_sync_rewards_json)
-        sync_rewards_id = []
-        sync_rewards_tag = []
+        unsynced_challenges = json.loads(unsynced_challenges_json)
+        synced_challenges_id = []
+        synced_challenges_new_server_tags = []
 
         with transaction.atomic():
 
-            for r_android in un_sync_rewards:
+            for entry in unsynced_challenges:
+                e = convert_android_dict_to_python_dict(entry)
+                Challenge.objects.filter(id=e["id"]).update(**e)
 
-                reward_id = r_android["id"]
-                objective_reached = r_android["objectiveReached"]
-                cashed_out = r_android["cashedOut"]
-                objective_reached_ts = r_android["objectiveReachedTs"]
-                cashed_out_ts = r_android["cashedOutTs"]
-                revealed_by_button = r_android["revealedByButton"]
-                revealed_by_notification = r_android["revealedByNotification"]
-                revealed_ts = r_android["revealedTs"]
-                android_tag = r_android["localTag"]
+                synced_challenges_id.append(e["reward_id"])
+                synced_challenges_new_server_tags.append(e["android_tag"])
 
-                Reward.objects.filter(id=reward_id).update(**{
-                    "objective_reached": objective_reached,
-                    "cashed_out": cashed_out,
-                    "objective_reached_dt": datetime.datetime.fromtimestamp(
-                        objective_reached_ts / 1000, tz=tz),
-                    "cashed_out_dt": datetime.datetime.fromtimestamp(
-                        cashed_out_ts / 1000, tz=tz),
-                    "revealed_dt": datetime.datetime.fromtimestamp(
-                        revealed_ts / 1000, tz=tz),
-                    "revealed_by_button": revealed_by_button,
-                    "revealed_by_notification": revealed_by_notification,
-                })
-
-                sync_rewards_id.append(reward_id)
-                sync_rewards_tag.append(android_tag)
+        new_challenges = Challenge.objects.filter(user=u, android_tag__isnull=True)
 
         # -------------------------------------------------------------------------------
 
         # Update the user status
-        status = json.loads(status)
+        status = convert_android_dict_to_python_dict(json.loads(status))
+        Status.objects.filter(user=u).update(**status)
 
-        step_number = status["stepNumber"]
-        chest_amount = status["chestAmount"]
-        daily_objective = status["dailyObjective"]
-
-        reward_id = status["rewardId"]
-        objective = status["objective"]
-        starting_at = status["startingAt"]
-        amount = status["amount"]
-
-        day_of_the_month = status["dayOfTheMonth"]
-        day_of_the_week = status["dayOfTheWeek"]
-        month = status["month"]
-
-        state = status["state"]
-        error = status["error"]
-
-        Status.objects.filter(user=u).update(**{
-            "last_update_dt": datetime.datetime.now(tz=tz),
-
-            "step_number": step_number,
-            "chest_amount": chest_amount,
-            "daily_objective": daily_objective,
-
-            "reward_id": reward_id,
-            "objective": objective,
-            "starting_at": starting_at,
-            "amount": amount,
-
-            "day_of_the_month": day_of_the_month,
-            "day_of_the_week": day_of_the_week,
-            "month": month,
-
-            "state": state,
-            "error": error
-        })
-
-        Log.objects.create(user=u)
+        ConnectionToServer.objects.create(user=u)
 
         return {
             'subject': subject,
             'lastActivityTimestampMillisecond': last_activity_ts,
             'lastInteractionTimestampMillisecond': last_interaction_ts,
-            'syncRewardsId': json.dumps(sync_rewards_id),
-            'syncRewardsTag': json.dumps(sync_rewards_tag)
+            'syncedChallengesId': json.dumps(synced_challenges_id),
+            'syncedChallengesTag': json.dumps(synced_challenges_new_server_tags),
+            'newChallenges': json.dumps([c.to_android_dict() for c in new_challenges])
         }
 
 # --------------------------------------- #
