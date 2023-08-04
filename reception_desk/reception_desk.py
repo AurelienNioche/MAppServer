@@ -13,7 +13,9 @@ from __test_user__small_objectives import create_user__small_objectives
 
 CAMEL_TO_SNAKE_PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
 
+
 # ----------- Utils ------------------------------------------
+
 
 def camel_to_snake(s):
     return CAMEL_TO_SNAKE_PATTERN.sub('_', s).lower()

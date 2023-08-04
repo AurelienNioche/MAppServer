@@ -123,4 +123,3 @@ class Interaction(MAppModel):
     dt = models.DateTimeField(default=None, null=False)
     event = models.CharField(default=None, null=True, max_length=256)
     android_id = models.IntegerField(default=None, null=False)
-
