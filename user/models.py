@@ -108,7 +108,8 @@ class Status(MAppModel):
     day_of_the_month = models.CharField(default=None, null=True, max_length=256)
     month = models.CharField(default=None, null=True, max_length=256)
     step_day = models.IntegerField(default=None, null=True)
-    error = models.CharField(default=None, null=True, max_length=256)
+    error = models.CharField(default="", null=True, max_length=256)
+    current_challenge = models.IntegerField(default=0, null=True)
 
 
 class ConnectionToServer(MAppModel):

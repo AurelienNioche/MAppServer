@@ -5,6 +5,7 @@ from django.db import transaction
 import numpy as np
 import re
 
+import assistant.tasks
 from MAppServer.settings import TIME_ZONE, APP_VERSION
 from user.models import User, Challenge, Activity, Status, ConnectionToServer, Interaction
 
@@ -82,7 +83,7 @@ class RequestHandler:
             u.last_login = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             u.save()
             print(f"User {username} successfully connected")
-            rewards = u.reward_set.order_by("date", "objective")
+            rewards = u.challenge_set.order_by("date", "objective")
             rewards_android = [r.to_android_dict() for r in rewards]
 
             total_reward_cashed_out = np.sum(
@@ -108,8 +109,8 @@ class RequestHandler:
         return {
             "subject": r["subject"],
             "ok": ok,
-            "rewardList": json.dumps(rewards_android),
-            "stepRecordList": json.dumps(step_records_android),
+            "challengeList": json.dumps(rewards_android),
+            "stepList": json.dumps(step_records_android),
             "status": json.dumps(status_android),
             "username": username,
         }
@@ -188,6 +189,9 @@ class RequestHandler:
             print(f"Found {n_already_existing_with_same_number_same_day} already existing with the same number and day")
 
         print(f"Added {n_added} new records")
+        if n_added:
+            # TODO: this might take a long time, would need to use Celery or something similar
+            assistant.tasks.update_beliefs(u=u)
 
         # --------------------------------------------------------------------------------------------
 
