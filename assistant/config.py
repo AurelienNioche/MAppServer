@@ -23,7 +23,7 @@ TRANSITION_POSITION_PVP = np.zeros((N_POSITION, N_VELOCITY, N_POSITION))
 for p_idx, p in enumerate(POSITIONS):
     for v_idx, v in enumerate(VELOCITIES):
         for p2_idx, p2 in enumerate(POSITIONS):
-            TRANSITION_POSITION_PVP[p_idx, v_idx, p2_idx] = norm.pdf(p2, loc=p + DT*v, scale=0.1)
+            TRANSITION_POSITION_PVP[p_idx, v_idx, p2_idx] = norm.pdf(p2, loc=p + DT*v, scale=DT)
 
 sum_col = TRANSITION_POSITION_PVP.sum(axis=-1)
 TRANSITION_POSITION_PVP /= sum_col[:, :, np.newaxis]

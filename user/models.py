@@ -25,27 +25,26 @@ def convert_date_to_android_timestamp(date):
     ts_python = datetime.datetime.fromordinal(date.toordinal()) + datetime.timedelta(days=0.5)
     return convert_datetime_to_android_timestamp(ts_python)
 
+
+def to_csv_row(obj):
+    return {k: v for k, v in obj.__dict__.items() if not k.startswith("_")}
+
+
+def to_android_dict(obj):
+    android_dict = {}
+    for k, v in obj.__dict__.items():
+        if not k.startswith("_"):
+            if "dt" in k:
+                k = k.replace("dt", "ts")
+                v = convert_datetime_to_android_timestamp(v)
+            android_dict[snake_to_camel(k)] = v
+
+    return android_dict
+
 # ------------------------------------------------------------------------------
 
 
-class MAppModel(models.Model):
-
-    def to_android_dict(self):
-        android_dict = {}
-        for k, v in self.__dict__.items():
-            if not k.startswith("_"):
-                if "dt" in k:
-                    k = k.replace("dt", "ts")
-                    v = convert_datetime_to_android_timestamp(v)
-                android_dict[snake_to_camel(k)] = v
-
-        return android_dict
-
-    def to_csv_row(self):
-        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
-
-
-class User(AbstractUser, MAppModel):
+class User(AbstractUser):
 
     date_joined = models.DateTimeField(auto_now_add=True)
 
@@ -60,7 +59,7 @@ class User(AbstractUser, MAppModel):
     REQUIRED_FIELDS = ['experiment', 'starting_date', 'base_chest_amount', 'daily_objective']
 
 
-class Activity(MAppModel):
+class Activity(models.Model):
 
     class Meta:
         verbose_name_plural = "activities"
@@ -78,13 +77,18 @@ class Activity(MAppModel):
     step_midnight = models.IntegerField(default=None, null=False)
 
 
-class Challenge(MAppModel):
+class Challenge(models.Model):
 
     # Set at creation
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     dt = models.DateTimeField(default=None, null=False)
+    dt_end = models.DateTimeField(default=None, null=False)
+    dt_offer = models.DateTimeField(default=None, null=False)
+    dt_offer_end = models.DateTimeField(default=None, null=False)
     objective = models.IntegerField(default=None, null=False)
     amount = models.FloatField(default=None, null=False)
+    # server_tag = models.CharField(default=None, null=False, max_length=256)
+    # android_tag = models.CharField(default=None, null=False, max_length=256)
 
     # Set after interaction with the user
     accepted = models.BooleanField(default=False, null=False)
@@ -95,7 +99,7 @@ class Challenge(MAppModel):
     cashed_out_dt = models.DateTimeField(default=None, null=True)
 
 
-class Status(MAppModel):
+class Status(models.Model):
 
     class Meta:
         verbose_name_plural = "statuses"
@@ -112,13 +116,13 @@ class Status(MAppModel):
     current_challenge = models.IntegerField(default=0, null=True)
 
 
-class ConnectionToServer(MAppModel):
+class ConnectionToServer(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     dt = models.DateTimeField(default=timezone.now, null=False)
 
 
-class Interaction(MAppModel):
+class Interaction(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     dt = models.DateTimeField(default=None, null=False)

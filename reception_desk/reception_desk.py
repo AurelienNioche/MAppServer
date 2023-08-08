@@ -10,7 +10,6 @@ from MAppServer.settings import TIME_ZONE, APP_VERSION
 from user.models import User, Challenge, Activity, Status, ConnectionToServer, Interaction
 
 from __test_user__create import create_test_user
-from __test_user__small_objectives import create_user__small_objectives
 
 CAMEL_TO_SNAKE_PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
 
@@ -49,6 +48,7 @@ class RequestHandler:
     def login(r):
 
         if "appVersion" not in r:
+            print("App version not specified. I'll skip this request.")
             return
 
         if r["appVersion"] != APP_VERSION:
@@ -67,13 +67,6 @@ class RequestHandler:
                 if u is not None:
                     u.delete()
                     create_test_user()
-                else:
-                    print("User not found")
-            elif username == "smallobj":
-                u = User.objects.filter(username=username).first()
-                if u is not None:
-                    u.delete()
-                    create_user__small_objectives()
                 else:
                     print("User not found")
 

@@ -142,7 +142,7 @@ EMAIL_PORT = 587
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-APP_VERSION = "2023.06.24"
+APP_VERSION = "2023.08.08"
 
 SERVER_RELATIVE_BASE_DIR = "DjangoApps/MAppServer"
 SERVER_BASE_DIR = os.path.expanduser(f"~/{SERVER_RELATIVE_BASE_DIR}")

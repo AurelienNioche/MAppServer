@@ -12,13 +12,10 @@ class Bot(websocket.WebSocketApp):
     """
     ws://192.168.0.14:8080/ws
     wss://samoa.dcs.gla.ac.uk/mapp/ws
-
-    ws://172.30.182.147:8080/ws
-
-    // wss://cf9d-130-209-150-254.ngrok-free.app/ws
+    https://c2fe-130-209-153-108.ngrok-free.app
     """
     def __init__(
-            self, url="wss://cf9d-130-209-150-254.ngrok-free.app/ws",
+            self, url="wss://c2fe-130-209-153-108.ngrok-free.app/ws",
             username="123test",
             waiting_time=2):
 
@@ -67,6 +64,7 @@ class Bot(websocket.WebSocketApp):
 
         message = {
             "subject": "login",
+            "appVersion": "2023.08.08",
             "username": self.username,
             "resetUser": False
         }

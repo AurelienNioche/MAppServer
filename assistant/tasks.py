@@ -4,9 +4,9 @@ from celery import shared_task
 from scipy import interpolate
 from datetime import datetime
 
-from assistant.models import Velocity, Position, Alpha, Schedule, User, Action
 from user.models import Activity
-from config import N_TIMESTEP, N_ACTION, N_VELOCITY, \
+from assistant.models import Velocity, Position, Alpha, Schedule, User, Action
+from assistant.config import N_TIMESTEP, N_ACTION, N_VELOCITY, \
     N_POSITION, POSITIONS, VELOCITIES, EXPERIMENT, DT
 
 
