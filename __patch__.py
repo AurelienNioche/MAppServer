@@ -15,8 +15,8 @@ if u is not None:
               "amount", "day_of_the_week", "day_of_the_month", "month", "step_number", "reward_id", "error"]:
         print(f"{k}: {getattr(status, k)}")
 
-    rewards = Reward.objects.filter(user=u).order_by("date", "objective")
-    for r in rewards:
+    challenges = Reward.objects.filter(user=u).order_by("date", "objective")
+    for r in challenges:
         to_print = f"r {r.id}: {r.date} {r.starting_at} {r.objective} {r.amount}"
         if r.objective_reached:
             to_print += f" Done [{r.objective_reached_dt}]"

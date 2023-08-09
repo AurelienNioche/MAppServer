@@ -28,7 +28,7 @@ def delete_db():
     rsp = input("Are you sure you want to DELETE THE DATABASE if it exists? (Y/N)")
     if rsp.lower() in ('y', 'yes'):
         db_name = DATABASES['default']['NAME']
-        os.system(f'dropdb IF EXISTS {db_name}')
+        os.system(f'dropdb {db_name}')
         os.system('find . -path "*/migrations/*.py" -not -name "__init__.py" -delete')
         os.system('find . -path "*/migrations/*.pyc" -delete')
         print("If there is no error message, the database should have been deleted.")

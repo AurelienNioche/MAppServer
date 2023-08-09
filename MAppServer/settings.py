@@ -15,8 +15,12 @@ import sys
 from . credentials import SECRET_KEY, DB_NAME, DB_PASSWORD, DB_USER, \
     EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
 
+from django.conf.locale.en import formats as en_formats
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DATETIME_FORMAT = 'Y-m-d H:i:s'
 
 
 # Quick-start development settings - unsuitable for production
@@ -52,6 +56,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'MAppServer.middleware.TimezoneMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -115,13 +120,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-gb'
 
 TIME_ZONE = 'Europe/London'
 
-USE_I18N = True
+USE_I18N = False
 
-USE_L10N = True
+USE_L10N = False
 
 USE_TZ = True
 
@@ -164,6 +169,8 @@ CSRF_TRUSTED_ORIGINS = [f"http://{SERVER_DOMAIN}"]
 CELERY_TIMEZONE = "Europe/London"
 CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
+
+
 
 # os.makedirs('tmp', exist_ok=True)
 #

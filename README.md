@@ -325,4 +325,4 @@ Add to config file:
 * (Very?) Optional: Display to user at what time the reward has been reached
 * (Very) Optional: delete step records on phone when sync with server
 * (Very?) Optional: Prevent cheating by tracking phoneId
-* (Very?) Optional: View a history of the rewards
+* (Very?) Optional: View a history of the challenges

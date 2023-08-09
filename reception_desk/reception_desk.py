@@ -31,7 +31,7 @@ def convert_android_dict_to_python_dict(d):
     for k, v in d.items():
         k = camel_to_snake(k)
         if "ts" in k:
-            k.replace("ts", "dt")
+            k = k.replace("ts", "dt")
             v = convert_android_timestamp_to_datetime(v)
         elif k == "id":
             k = "android_id"
@@ -76,15 +76,14 @@ class RequestHandler:
             u.last_login = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             u.save()
             print(f"User {username} successfully connected")
-            rewards = u.challenge_set.order_by("date", "objective")
-            rewards_android = [r.to_android_dict() for r in rewards]
+            challenges = u.challenge_set.order_by("dt_offer")
+            challenges_android = [r.to_android_dict() for r in challenges]
 
-            total_reward_cashed_out = np.sum(
-                u.reward_set.filter(cashed_out=True).values_list("amount", flat=True))
-            chest_amount = u.base_chest_amount + total_reward_cashed_out
+            total_cashed_out = np.sum(
+                u.challenge_set.filter(cashed_out=True).values_list("amount", flat=True))
+            chest_amount = u.base_chest_amount + total_cashed_out
 
             status = u.status_set.first()
-            status.daily_objective = u.daily_objective
             status.chest_amount = chest_amount
             status.error = ""  # Reset error if any error was present
 
@@ -97,12 +96,12 @@ class RequestHandler:
         else:
             print(f"User {r['username']} not recognized!")
             # Just to be sure that the variables are defined for passing to json decoder
-            rewards_android, status_android, step_records_android = [], {}, []
+            challenges_android, status_android, step_records_android = [], {}, []
 
         return {
             "subject": r["subject"],
             "ok": ok,
-            "challengeList": json.dumps(rewards_android),
+            "challengeList": json.dumps(challenges_android),
             "stepList": json.dumps(step_records_android),
             "status": json.dumps(status_android),
             "username": username,

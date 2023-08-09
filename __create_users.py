@@ -65,7 +65,7 @@ def create_users_from_df(df):
             u = User(
                 username=username,
                 experiment=experiment_name,
-                starting_date=date,  # We assume that in the CSV, the rewards are ordered by date
+                starting_date=date,  # We assume that in the CSV, the challenges are ordered by date
                 base_chest_amount=base_chest_amount,
                 daily_objective=daily_objective,
             )

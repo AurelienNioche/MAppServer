@@ -22,8 +22,13 @@ class ActivityAdmin(admin.ModelAdmin):
 @admin.register(Challenge)
 class ChallengeAdmin(admin.ModelAdmin):
     list_display = [
-        "id", "get_user", "dt", "objective", "amount", "accepted", "accepted_dt",
-        "objective_reached", "objective_reached_dt", "cashed_out", "cashed_out_dt"]
+        "id", "get_user",
+        "objective", "amount",
+        "dt_offer", "dt_offer_end",
+        "dt", "dt_end",
+        "accepted", "accepted_dt",
+        "objective_reached", "objective_reached_dt",
+        "cashed_out", "cashed_out_dt"]
 
     @admin.display(ordering='user__username', description='user__username')
     def get_user(self, obj):

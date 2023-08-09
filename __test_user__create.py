@@ -7,10 +7,11 @@ application = get_wsgi_application()
 from django.db import transaction
 import pytz
 from datetime import datetime, timedelta, time
-import uuid
 
 from user.models import User, Challenge, Status
 from MAppServer.settings import TIME_ZONE
+
+INIT_STATE = "experimentNotStarted"
 
 
 @transaction.atomic
@@ -21,7 +22,7 @@ def create_test_user():
                              for h in challenge_offer_hours]
 
     username = "123test"
-    starting_date = datetime.now(pytz.timezone(TIME_ZONE))
+    starting_date = datetime.now(tz=pytz.timezone(TIME_ZONE))
     experiment_name = "not-even-an-alpha-test"
     base_chest_amount = 6
     objective = 1000
@@ -35,13 +36,9 @@ def create_test_user():
 
     u = User.objects.filter(username=username).first()
     if u is not None:
-        if input("Do you want do delete previous user with the same name? (Y/N)") in ('y', 'yes'):
-            u.delete()
-            print("User deleted.")
-            print("-" * 20)
-        else:
-            print("No user created.")
-            return
+        u.delete()
+        print("User deleted.")
+        print("-" * 20)
 
     u = User.objects.create_user(
         username=username,
@@ -56,7 +53,7 @@ def create_test_user():
     else:
         raise ValueError("Something went wrong! User not created.")
 
-    s = Status.objects.create(user=u, )
+    s = Status.objects.create(user=u, state=INIT_STATE)
     if s is not None:
         print(f"Status successfully created for user {u.username}.")
         print("-" * 20)
@@ -69,8 +66,9 @@ def create_test_user():
     current_date = starting_date
     for _ in range(n_day):
         for ch_t in challenge_offer_times:
-
-            dt_offer = datetime.combine(current_date, ch_t)
+            dt_offer = datetime(current_date.year, current_date.month, current_date.day,
+                                ch_t.hour, ch_t.minute, ch_t.second, ch_t.microsecond,
+                                current_date.tzinfo)
 
             # uuid_tag = uuid.uuid4()
             # uuid_tag_str = str(uuid_tag)
