@@ -66,22 +66,24 @@ def create_test_user():
     current_date = starting_date
     for _ in range(n_day):
         for ch_t in challenge_offer_times:
-            dt_offer = datetime(current_date.year, current_date.month, current_date.day,
-                                ch_t.hour, ch_t.minute, ch_t.second, ch_t.microsecond,
-                                current_date.tzinfo)
+
+            dt_offer_begin = datetime(
+                current_date.year, current_date.month, current_date.day,
+                ch_t.hour, ch_t.minute, ch_t.second, ch_t.microsecond,
+                current_date.tzinfo)
 
             # uuid_tag = uuid.uuid4()
             # uuid_tag_str = str(uuid_tag)
 
-            dt_offer_end = dt_offer + offer_window
+            dt_offer_end = dt_offer_begin + offer_window
             dt = dt_offer_end + init_delta_after_offer_end
             dt_end = dt + challenge_window
 
             Challenge.objects.create(
                 user=u,
-                dt_offer=dt_offer,
+                dt_offer_begin=dt_offer_begin,
                 dt_offer_end=dt_offer_end,
-                dt=dt,
+                dt_begin=dt,
                 dt_end=dt_end,
                 objective=objective,
                 amount=amount)

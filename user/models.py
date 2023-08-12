@@ -94,12 +94,13 @@ class Challenge(models.Model):
 
     # Set at creation
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    dt = models.DateTimeField(default=None, null=False)
-    dt_end = models.DateTimeField(default=None, null=False)
-    dt_offer = models.DateTimeField(default=None, null=False)
+    dt_offer_begin = models.DateTimeField(default=None, null=False)
     dt_offer_end = models.DateTimeField(default=None, null=False)
+    dt_begin = models.DateTimeField(default=None, null=False)
+    dt_end = models.DateTimeField(default=None, null=False)
     objective = models.IntegerField(default=None, null=False)
     amount = models.FloatField(default=None, null=False)
+    step_count = models.IntegerField(default=None, null=True)
     server_tag = models.CharField(default=None, null=True, max_length=256)
     android_tag = models.CharField(default=None, null=True, max_length=256)
 
@@ -135,6 +136,7 @@ class Status(models.Model):
     step_day = models.IntegerField(default=None, null=True)
     error = models.CharField(default="", null=True, max_length=256)
     current_challenge = models.IntegerField(default=0, null=True)
+    dt = models.DateTimeField(default=None, null=True)
 
     android_id = models.IntegerField(default=None, null=True)
 

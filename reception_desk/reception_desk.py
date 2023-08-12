@@ -76,7 +76,7 @@ class RequestHandler:
             u.last_login = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             u.save()
             print(f"User {username} successfully connected")
-            challenges = u.challenge_set.order_by("dt_offer")
+            challenges = u.challenge_set.order_by("dt_offer_begin")
             challenges_android = [r.to_android_dict() for r in challenges]
 
             total_cashed_out = np.sum(
@@ -206,7 +206,7 @@ class RequestHandler:
         user_activities = u.activity_set
         if user_activities.count():
             last_record = user_activities.latest("dt")
-            last_record_dt = last_record.dt
+            last_record_dt = last_record.dt_begin
         else:
             last_record_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
 
@@ -217,7 +217,7 @@ class RequestHandler:
         user_interactions = u.interaction_set
         if user_interactions.count():
             last_interaction = user_interactions.latest("dt")
-            last_interaction_dt = last_interaction.dt
+            last_interaction_dt = last_interaction.dt_begin
         else:
             last_interaction_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
 

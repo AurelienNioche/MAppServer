@@ -24,8 +24,8 @@ class ChallengeAdmin(admin.ModelAdmin):
     list_display = [
         "id", "get_user",
         "objective", "amount",
-        "dt_offer", "dt_offer_end",
-        "dt", "dt_end",
+        "dt_offer_begin", "dt_offer_end",
+        "dt_begin", "dt_end",
         "accepted", "accepted_dt",
         "objective_reached", "objective_reached_dt",
         "cashed_out", "cashed_out_dt"]
