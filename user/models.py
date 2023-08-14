@@ -137,7 +137,7 @@ class Status(models.Model):
     error = models.CharField(default="", null=True, max_length=256)
     current_challenge = models.IntegerField(default=0, null=True)
     dt = models.DateTimeField(default=None, null=True)
-    dt_start_of_the_day = models.DateTimeField(default=None, null=True)
+    dt_at_start_of_day = models.DateTimeField(default=None, null=True)
 
     android_id = models.IntegerField(default=None, null=True)
 

@@ -11,6 +11,11 @@ from datetime import datetime, timedelta, time
 from user.models import User, Challenge, Status
 from MAppServer.settings import TIME_ZONE
 
+import uuid
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
 INIT_STATE = "experimentNotStarted"
 
 
@@ -79,6 +84,8 @@ def create_test_user():
             dt = dt_offer_end + init_delta_after_offer_end
             dt_end = dt + challenge_window
 
+            random_uuid = generate_uuid()
+
             Challenge.objects.create(
                 user=u,
                 dt_offer_begin=dt_offer_begin,
@@ -86,9 +93,9 @@ def create_test_user():
                 dt_begin=dt,
                 dt_end=dt_end,
                 objective=objective,
-                amount=amount)
-                # serverTag=uuid_tag_str,
-                # localTag=uuid_tag_str)
+                amount=amount,
+                android_tag=random_uuid,
+                server_tag=random_uuid)
 
         current_date += timedelta(days=1)
 

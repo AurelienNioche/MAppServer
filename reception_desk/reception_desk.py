@@ -4,6 +4,7 @@ import pytz
 from django.db import transaction
 import numpy as np
 import re
+from django.db.models import F
 
 import assistant.tasks
 from MAppServer.settings import TIME_ZONE, APP_VERSION
@@ -206,7 +207,7 @@ class RequestHandler:
         user_activities = u.activity_set
         if user_activities.count():
             last_record = user_activities.latest("dt")
-            last_record_dt = last_record.dt_begin
+            last_record_dt = last_record.dt
         else:
             last_record_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
 
@@ -217,7 +218,7 @@ class RequestHandler:
         user_interactions = u.interaction_set
         if user_interactions.count():
             last_interaction = user_interactions.latest("dt")
-            last_interaction_dt = last_interaction.dt_begin
+            last_interaction_dt = last_interaction.dt
         else:
             last_interaction_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
 
@@ -235,10 +236,15 @@ class RequestHandler:
                 e = convert_android_dict_to_python_dict(entry)
                 Challenge.objects.filter(id=e["id"]).update(**e)
 
-                synced_challenges_id.append(e["reward_id"])
+                synced_challenges_id.append(e["android_id"])
                 synced_challenges_new_server_tags.append(e["android_tag"])
 
-        new_challenges = Challenge.objects.filter(user=u, android_tag__isnull=True)
+            updated_challenges = Challenge.objects.exclude(android_tag=F("server_tag"))
+            for entry in updated_challenges:
+                synced_challenges_id.append(entry.android_tag)
+                synced_challenges_new_server_tags.append(entry.server_tag)
+
+        # new_challenges = Challenge.objects.filter(user=u, android_tag__isnull=True)
 
         # -------------------------------------------------------------------------------
 
@@ -254,7 +260,7 @@ class RequestHandler:
             'lastInteractionTimestampMillisecond': last_interaction_ts,
             'syncedChallengesId': json.dumps(synced_challenges_id),
             'syncedChallengesTag': json.dumps(synced_challenges_new_server_tags),
-            'newChallenges': json.dumps([c.to_android_dict() for c in new_challenges])
+            # 'newChallenges': json.dumps([c.to_android_dict() for c in new_challenges])
         }
 
 # --------------------------------------- #
