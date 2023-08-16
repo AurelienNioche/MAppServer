@@ -13,16 +13,18 @@ from MAppServer.settings import TIME_ZONE
 
 import uuid
 
-def generate_uuid():
-    return str(uuid.uuid4())
 
 INIT_STATE = "experimentNotStarted"
+
+
+def generate_uuid():
+    return str(uuid.uuid4())
 
 
 @transaction.atomic
 def create_test_user():
 
-    challenge_offer_hours = [8, 12, 20]
+    challenge_offer_hours = [8, 17, 20]
     challenge_offer_times = [time(hour=h, minute=0, second=0, microsecond=0, tzinfo=pytz.timezone(TIME_ZONE))
                              for h in challenge_offer_hours]
 
@@ -30,12 +32,12 @@ def create_test_user():
     starting_date = datetime.now(tz=pytz.timezone(TIME_ZONE))
     experiment_name = "not-even-an-alpha-test"
     base_chest_amount = 6
-    objective = 1000
+    objective = 10
     amount = 0.4
     n_day = 2
     offer_window = timedelta(hours=1)
-    challenge_window = timedelta(hours=2)
-    init_delta_after_offer_end = timedelta(hours=1)
+    challenge_window = timedelta(hours=1)
+    init_delta_after_offer_end = timedelta(hours=0)
 
     print("BASIC TEST USER CREATION")
 

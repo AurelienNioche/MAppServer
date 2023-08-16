@@ -17,7 +17,6 @@ CAMEL_TO_SNAKE_PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
 
 # ----------- Utils ------------------------------------------
 
-
 def camel_to_snake(s):
     return CAMEL_TO_SNAKE_PATTERN.sub('_', s).lower()
 
@@ -184,6 +183,7 @@ class RequestHandler:
         print(f"Added {n_added} new records")
         if n_added:
             # TODO: this might take a long time, would need to use Celery or something similar
+            print("Updating beliefs")
             assistant.tasks.update_beliefs(u=u)
 
         # --------------------------------------------------------------------------------------------
@@ -192,6 +192,7 @@ class RequestHandler:
         interactions = json.loads(interactions_json)
         with transaction.atomic():
             for entry in interactions:
+                print(f"adding new interaction: {entry}")
 
                 if u.interaction_set.filter(android_id=android_id).first() is not None:
                     print("Record already exists")
@@ -234,12 +235,12 @@ class RequestHandler:
 
             for entry in unsynced_challenges:
                 e = convert_android_dict_to_python_dict(entry)
-                Challenge.objects.filter(id=e["id"]).update(**e)
+                u.challenge_set.filter(android_id=e["android_id"]).update(**e)
 
                 synced_challenges_id.append(e["android_id"])
                 synced_challenges_new_server_tags.append(e["android_tag"])
 
-            updated_challenges = Challenge.objects.exclude(android_tag=F("server_tag"))
+            updated_challenges = u.challenge_set.exclude(android_tag=F("server_tag"))
             for entry in updated_challenges:
                 synced_challenges_id.append(entry.android_tag)
                 synced_challenges_new_server_tags.append(entry.server_tag)
