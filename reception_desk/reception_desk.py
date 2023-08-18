@@ -8,9 +8,8 @@ from django.db.models import F
 
 import assistant.tasks
 from MAppServer.settings import TIME_ZONE, APP_VERSION
-from user.models import User, Challenge, Activity, Status, ConnectionToServer, Interaction
+from user.models import User, Activity, Status, ConnectionToServer, Interaction
 
-from __test_user__create import create_test_user
 
 CAMEL_TO_SNAKE_PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
 
@@ -26,6 +25,10 @@ def convert_android_timestamp_to_datetime(ts):
     return datetime.datetime.fromtimestamp(ts / 1000, tz=tz)
 
 
+def convert_datetime_to_android_timestamp(dt):
+    return int(dt.timestamp() * 1000)
+
+
 def convert_android_dict_to_python_dict(d):
     python_dict = {}
     for k, v in d.items():
@@ -38,6 +41,15 @@ def convert_android_dict_to_python_dict(d):
         python_dict[k] = v
     return python_dict
 
+
+def read_android_json(json_string):
+    android_obj = json.loads(json_string)
+    if type(android_obj) is dict:
+        return convert_android_dict_to_python_dict(android_obj)
+    elif type(android_obj) is list:
+        return [convert_android_dict_to_python_dict(a) for a in android_obj]
+    else:
+        raise ValueError("Unknown type")
 
 # ----------------------------------------------------
 
@@ -58,17 +70,17 @@ class RequestHandler:
         print(f"User {r['username']} is trying to connect...")
 
         username = r["username"]
-        reset_user = r["resetUser"]
-
-        if reset_user:
-            if username == "123test":
-                print("Resetting user")
-                u = User.objects.filter(username=username).first()
-                if u is not None:
-                    u.delete()
-                    create_test_user()
-                else:
-                    print("User not found")
+        # reset_user = r["resetUser"]
+        #
+        # if reset_user:
+        #     if username == "123test":
+        #         print("Resetting user")
+        #         u = User.objects.filter(username=username).first()
+        #         if u is not None:
+        #             u.delete()
+        #             create_test_user()
+        #         else:
+        #             print("User not found")
 
         u = User.objects.filter(username=username).first()
         ok = u is not None
@@ -123,7 +135,7 @@ class RequestHandler:
             print(f"Ask for update but user not recognized: {username}. I'll skip this request.")
             return
 
-        activities_json = r["records"]
+        activities_json = r["steps"]
         interactions_json = r["interactions"]
         unsynced_challenges_json = r["unsyncedChallenges"]  # TODO: rename in Android project
         status = r["status"]
@@ -135,44 +147,24 @@ class RequestHandler:
         # --------------------------------------------------------------------------------------------
 
         # Record any new activity
-        activities = json.loads(activities_json)
+        activities = read_android_json(activities_json)
         n_already_existing_with_same_id = 0
         n_already_existing_with_same_number_same_day = 0
         n_added = 0
         with transaction.atomic():
             for a in activities:
 
-                android_id = a["id"]
-                ts = a["ts"]
-                ts_last_boot = a["tsLastBoot"]
-                step_last_boot = a["stepLastBoot"]
-                step_midnight = a["stepMidnight"]
-
-                if u.activity_set.filter(android_id=android_id).first() is not None:
+                if u.activity_set.filter(android_id=a["android_id"]).first() is not None:
                     n_already_existing_with_same_id += 1
                     continue
 
-                dt = convert_android_timestamp_to_datetime(ts)
-                dt_last_boot = convert_android_timestamp_to_datetime(ts_last_boot)
-
+                dt = a["dt"]
                 if u.activity_set.filter(dt__day=dt.day, dt__month=dt.month, dt__year=dt.year,
-                                         step_midnight=step_midnight).first() is not None:
+                                         step_midnight=a["step_midnight"]).first() is not None:
                     n_already_existing_with_same_number_same_day += 1
                     continue
 
-                # Check if there isn't record too close in time from the same day, and delete it if so
-                # to_delete = Activity.objects.filter(user=u)\
-                #     .filter(dt__gt=dt - datetime.timedelta(minutes=2))\
-                #     .exclude(dt__lt=datetime.datetime.combine(dt.date(), datetime.datetime.min.time())).first()
-                # to_delete.delete()
-
-                Activity.objects.create(
-                    user=u,
-                    android_id=android_id,
-                    dt=dt,
-                    dt_last_boot=dt_last_boot,
-                    step_last_boot=step_last_boot,
-                    step_midnight=step_midnight)
+                Activity.objects.create(user=u, **a)
                 n_added += 1
 
         if n_already_existing_with_same_id > 0:
@@ -189,18 +181,16 @@ class RequestHandler:
         # --------------------------------------------------------------------------------------------
 
         # Record any new interaction
-        interactions = json.loads(interactions_json)
+        interactions = read_android_json(interactions_json)
         with transaction.atomic():
-            for entry in interactions:
-                print(f"adding new interaction: {entry}")
+            for itr in interactions:
+                print(f"adding new interaction: {itr}")
 
-                if u.interaction_set.filter(android_id=android_id).first() is not None:
+                if u.interaction_set.filter(android_id=itr["android_id"]).first() is not None:
                     print("Record already exists")
                     continue
 
-                Interaction.objects.create(
-                    user=u,
-                    **convert_android_dict_to_python_dict(entry))
+                Interaction.objects.create(user=u, **itr)
 
         # ------------------------------------------------------------------------------------
 
@@ -208,49 +198,46 @@ class RequestHandler:
         user_activities = u.activity_set
         if user_activities.count():
             last_record = user_activities.latest("dt")
-            last_record_dt = last_record.dt
+            dt = last_record.dt
         else:
-            last_record_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
+            dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
 
-        last_activity_ts = int(last_record_dt.timestamp() * 1000)
+        last_activity_ts = convert_datetime_to_android_timestamp(dt)
 
         # ------------------------------------------------------------------------------------
         # Get the latest `Interaction` timestamp
         user_interactions = u.interaction_set
         if user_interactions.count():
             last_interaction = user_interactions.latest("dt")
-            last_interaction_dt = last_interaction.dt
+            dt = last_interaction.dt
         else:
-            last_interaction_dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
+            dt = datetime.datetime(1, 2, 3)  # Something very far away in the past
 
-        last_interaction_ts = int(last_interaction_dt.timestamp() * 1000)
+        last_interaction_ts = convert_datetime_to_android_timestamp(dt)
 
         # ------------------------------------------------------------------------------------------------
 
-        unsynced_challenges = json.loads(unsynced_challenges_json)
+        unsynced_challenges = read_android_json(unsynced_challenges_json)
         synced_challenges_id = []
         synced_challenges_new_server_tags = []
 
         with transaction.atomic():
 
             for entry in unsynced_challenges:
-                e = convert_android_dict_to_python_dict(entry)
-                u.challenge_set.filter(android_id=e["android_id"]).update(**e)
+                u.challenge_set.filter(android_id=entry["android_id"]).update(**entry)
 
-                synced_challenges_id.append(e["android_id"])
-                synced_challenges_new_server_tags.append(e["android_tag"])
+                synced_challenges_id.append(entry["android_id"])
+                synced_challenges_new_server_tags.append(entry["android_tag"])
 
             updated_challenges = u.challenge_set.exclude(android_tag=F("server_tag"))
             for entry in updated_challenges:
                 synced_challenges_id.append(entry.android_tag)
                 synced_challenges_new_server_tags.append(entry.server_tag)
 
-        # new_challenges = Challenge.objects.filter(user=u, android_tag__isnull=True)
-
         # -------------------------------------------------------------------------------
 
         # Update the user status
-        status = convert_android_dict_to_python_dict(json.loads(status))
+        status = read_android_json(status)
         Status.objects.filter(user=u).update(**status)
 
         ConnectionToServer.objects.create(user=u)

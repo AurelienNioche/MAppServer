@@ -1,33 +1,46 @@
-import os
 import numpy as np
 from celery import shared_task
 from scipy import interpolate
 from datetime import datetime
 
-from user.models import Activity
-from assistant.models import Velocity, Position, Alpha, Schedule, User, Action
+
+from assistant.models import Velocity, Position, Alpha, User
 from assistant.config import N_TIMESTEP, N_ACTION, N_VELOCITY, \
     N_POSITION, POSITIONS, VELOCITIES, EXPERIMENT, DT
+
+
+# Utils --------------------
+
+def numpy_to_list(arr: np.ndarray) -> object:
+    if arr.ndim == 1:
+        return arr.tolist()
+    else:
+        return [numpy_to_list(sub_arr) for sub_arr in arr]
+
+# ----------------
 
 
 def update_beliefs(u: User, now: datetime = None):
     if now is None:
         now = datetime.now()
 
-    entries = Activity.objects.filter(user=u, dt__date=now.date)
+    print(f"Updating beliefs for user {u.username} at {now}")
+    print("Now date: ", now.date())
+    entries = u.activity_set.filter(dt__date=now.date())
     dt = np.asarray(entries.values_list("dt", flat=True))
     y = np.asarray(entries.values_list("step_midnight", flat=True))
 
-    old_entries = Velocity.objects.filter(user=u, dt__date=now.date)
+    old_entries = u.velocity_set.filter(dt__date=now.date())
     if old_entries is not None:
         old_entries.delete()
 
-    old_entries = Position.objects.filter(user=u, dt__date=now.date)
+    old_entries = u.position_set.filter(dt__date=now.date())
     if old_entries is not None:
         old_entries.delete()
 
-    actions = Action.objects.filter(user=u, date=now.date).order_by("timestep_index")
+    actions = u.action_set.filter(date=now.date()).order_by("timestep_index")
 
+    # noinspection PyUnresolvedReferences
     min_ts = np.min(dt).timestamp()
     x_sec = np.asarray([_dt.timestamp() for _dt in dt])
 
@@ -46,15 +59,18 @@ def update_beliefs(u: User, now: datetime = None):
 
     # Compute the diff
     y_diff = np.diff(y_new) / DT
-    x_diff = [datetime.fromtimestamp(x_) for x_ in x_new[:-1]]  # Forward approximation
+    x_diff = x_new[:-1]  # Forward approximation
+
+    x_new_dt = [datetime.fromtimestamp(x_) for x_ in x_new]
+    x_diff_dt = [datetime.fromtimestamp(x_) for x_ in x_diff]
 
     # Record values ---------------
 
-    for x_, y_ in zip(x_diff, y_diff):
-        Velocity.objects.create(dt=x_, velocity=y_)
+    for i, (x_, y_) in enumerate(zip(x_new_dt, y_new)):
+        Position.objects.create(user=u, dt=x_, timestep_index=i, position=y_)
 
-    for x_, y_ in zip(x_new, y_new):
-        Position.objects.create(dt=x_, velocity=y_)
+    for i, (x_, y_) in enumerate(zip(x_diff_dt, y_diff)):
+        Velocity.objects.create(user=u, dt=x_, timestep_index=i, velocity=y_)
 
     # Discretize ------------------
 
@@ -74,7 +90,7 @@ def update_beliefs(u: User, now: datetime = None):
         v_t_plus_one = v_indexes[t_idx + 1]
         alpha_tapvv[t_idx, a, p, v, v_t_plus_one] += 1
 
-    Alpha.objects.create(user=u, date=now.date, alpha=alpha_tapvv)
+    Alpha.objects.create(user=u, date=now.date(), alpha=numpy_to_list(alpha_tapvv))
 
 
 @shared_task
