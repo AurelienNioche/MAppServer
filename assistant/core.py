@@ -87,7 +87,7 @@ def _get_new_action(position, velocity, alpha_tapvv, timestep):
 
                 # Update beliefs about the velocity and position
                 # [IMPORTANT: updating the beliefs transition model BEFORE doing this]
-                qv = qv @ q[rollout_t_index, a, :, :]
+                qv = qp @ (qv @ q[rollout_t_index, a, :, :])
                 qp = qp @ (qv @ TRANSITION_POSITION_PVP)
                 qps[h_idx] = qp
 
