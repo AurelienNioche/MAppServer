@@ -1,33 +1,11 @@
 import numpy as np
 import itertools
-from multiprocessing import Manager, Pool, cpu_count, Value
-from tqdm import tqdm
+from multiprocessing import Pool, cpu_count, Value
 import time
 
 import functools
-from scipy.special import gammaln, digamma
 
-
-def kl_div_dirichlet(alpha_coeff, beta_coeff):
-    """
-        https://statproofbook.github.io/P/dir-kl.html
-    """
-    alpha_0 = np.sum(alpha_coeff)
-    beta_0 = np.sum(beta_coeff)
-    kl = (
-        gammaln(alpha_0)
-        - gammaln(beta_0)
-        - np.sum(gammaln(alpha_coeff))
-        + np.sum(gammaln(beta_coeff))
-        + np.sum((alpha_coeff - beta_coeff) * (digamma(alpha_coeff) - digamma(alpha_0)))
-    )
-    return kl
-
-
-def q_transition_velocity(alpha):
-    sum_col = np.sum(alpha, axis=-1)
-    sum_col[sum_col <= 0.] = 1
-    return alpha / sum_col[:, :, :, :, np.newaxis]
+from demo.model.helpers import kl_div_dirichlet, compute_q
 
 
 def run_sample(sample,
@@ -45,9 +23,7 @@ def run_sample(sample,
     )
 
     # Log error
-    error = np.sum(
-        np.absolute(transition_velocity_tapvv - q_transition_velocity(alpha_tapvv))
-    )
+    error = np.mean((transition_velocity_tapvv - compute_q(alpha_tapvv)) ** 2)
     if sample == 0:
         print(f"Initial error {error:.2f}")
 
@@ -69,7 +45,7 @@ def run_sample(sample,
             # Initialize action plan values
             epistemic = np.zeros(len(action_plan))
 
-            q = q_transition_velocity(alpha_tapvv)
+            q = compute_q(alpha_tapvv)
 
             # Compute value of each action plan
             for ap_index, ap in enumerate(action_plan):
@@ -92,7 +68,8 @@ def run_sample(sample,
                     to_add = qv_tiled * qp_tiled * q[rollout_t_index, a, :, :, :]
                     alpha_tapvv_rollout[rollout_t_index, a, :, :, :] += to_add
 
-                    # Update beliefs about the velocity and position [IMPORTANT] => do it after updating beliefs about the transitions
+                    # Update beliefs about the velocity and position
+                    # [IMPORTANT] => do it after updating beliefs about the transitions
                     qv = qp @ (qv @ q[rollout_t_index, a, :, :, :])
                     qp = qp @ (qv @ transition_position_pvp)
 
@@ -121,11 +98,7 @@ def run_sample(sample,
             )
 
             # Log
-            error = np.sum(
-                np.absolute(
-                    transition_velocity_tapvv - q_transition_velocity(alpha_tapvv)
-                )
-            ) / np.size(transition_velocity_tapvv)
+            error = np.mean((transition_velocity_tapvv - q_transition_velocity(alpha_tapvv))**2)
             hist_err.append(error)
             hist_a.append(a)
             epoch += 1
@@ -153,17 +126,14 @@ def wrapper(kwargs):
     return run_sample(**kwargs)
 
 
-def run_task(pbar, n_episode, n_sample_run,
+def run_task(pbar, n_episode, n_sample,
              transition_velocity_tapvv, transition_position_pvp,
              position, velocity, timestep, horizon):
 
     n_timestep, n_action, n_position, n_velocity, _ = transition_velocity_tapvv.shape
-    hist_err = np.zeros((n_sample_run, n_episode * n_timestep))
-
-    n = n_sample_run*n_episode*n_timestep
+    hist_err = np.zeros((n_sample, n_episode * n_timestep))
 
     num_processes = cpu_count()
-    print("num_processes: ", num_processes)
     counter = Value("i", 0)
     with Pool(num_processes, initializer=init_globals, initargs=(counter,)) as p:
         result = p.map_async(functools.partial(
@@ -175,7 +145,7 @@ def run_task(pbar, n_episode, n_sample_run,
                     velocity=velocity,
                     timestep=timestep,
                     horizon=horizon,
-                ), range(n))
+                ), range(n_sample))
 
         while not result.ready():
             # pbar.n = counter.value
