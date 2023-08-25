@@ -1,10 +1,13 @@
 import numpy as np
 import itertools
+import os
+import pickle
+from tqdm import tqdm
 
 from demo.plot.plot import plot_error
 from model.transition import compute_transition_position_matrix, compute_transition_velocity_matrix
 from model.baseline import run_baseline_epistemic
-from model.helpers import kl_div_dirichlet, compute_q, compute_sum_kl_div_dirichlet
+from model.helpers import compute_q, compute_sum_kl_div_dirichlet
 
 
 def evaluate_epistemic(
@@ -36,7 +39,7 @@ def evaluate_epistemic(
 
     hist_err = np.zeros((n_run, n_episode_per_run * n_timestep))
     
-    for sample in range(n_run):
+    for sample in tqdm(range(n_run), leave=False, position=0):
         # Initialize alpha
         alpha_tapvv = (
             np.zeros((n_timestep, n_action, n_position, n_velocity, n_velocity))
@@ -46,26 +49,27 @@ def evaluate_epistemic(
             # Log error
             error = np.mean((transition_velocity_tapvv - compute_q(alpha_tapvv)) ** 2)
 
-            print(f"Initial error {error:.2f}")
+            print(f"Initial error {error:.6f}")
 
         epoch = 0
-        for ep_idx in range(n_episode_per_run):
+        for ep_idx in tqdm(range(n_episode_per_run), leave=False, position=1):
             np.random.seed(12334 + ep_idx + sample * 123)
 
             p_idx = np.absolute(position).argmin()  # Something close to 0
             v_idx = np.absolute(velocity).argmin()  # Something close to 0
 
-            random_action_plan = np.random.randint(n_action, size=n_timestep)
-            print("random action plan", random_action_plan)
+            # random_action_plan = np.random.randint(n_action, size=n_timestep)
+            # print("random action plan", random_action_plan)
 
             for t_idx, t in enumerate(timestep):
                 h = min(horizon, n_timestep - t_idx)
                 action_plan = list(itertools.product(range(n_action), repeat=h))
-                print(action_plan)
+                # print(action_plan)
 
                 # Initialize action plan values
                 epistemic = np.zeros(len(action_plan))
 
+                #TODO: Need to sample instead of using the expectation
                 q = compute_q(alpha_tapvv)
 
                 # Compute value of each action plan
@@ -84,28 +88,38 @@ def evaluate_epistemic(
                         rollout_t_index = t_idx + h_idx
 
                         # Update beliefs about the transition model
-                        qv_tiled = np.expand_dims(np.tile(qv, (n_position, 1)), axis=-1)
-                        qp_tiled = np.expand_dims(np.tile(qp, (n_velocity, 1)).T, axis=-1)
-                        to_add = qv_tiled * qp_tiled * q[rollout_t_index, a, :, :, :]
+                        to_add = np.outer(qp, qv)[..., None] * q[rollout_t_index, a, :, :, :]
                         alpha_tapvv_rollout[rollout_t_index, a, :, :, :] += to_add
-
                         # Update beliefs about the velocity and position
                         # [IMPORTANT] => do it after updating beliefs about the transitions
-                        qv = qp @ (qv @ q[rollout_t_index, a, :, :, :])
+                        qv = to_add.sum(axis=(0, 1))  # Same as: qv = qp @ (qv @ q[rollout_t_index, a, :, :, :])
                         qp = qp @ (qv @ transition_position_pvp)
 
-                        # Choose the best action plan
-                    epistemic[ap_index] = compute_sum_kl_div_dirichlet(alpha_tapvv_rollout=alpha_tapvv_rollout,
-                                                                       alpha_tapvv=alpha_tapvv)
-                    print("ap", action_plan[ap_index])
-                    print(epistemic[ap_index])
-                #
-                # # Choose the best action plan
-                # best_action_plan_index = np.random.choice(
+                    # Choose the best action plan
+                    epistemic[ap_index] = compute_sum_kl_div_dirichlet(
+                        alpha_rollout=alpha_tapvv_rollout,
+                        alpha=alpha_tapvv)
+
+                    # print("ap", action_plan[ap_index])
+                    # print(epistemic[ap_index])
+
+                # # Choose an action plan
+                def softmax(x, temperature=1.0):
+                    x = x / temperature
+                    e_x = np.exp(x - np.max(x))
+                    return e_x / e_x.sum(axis=0)
+                selected_action_plan_index = np.random.choice(
+                    len(action_plan),
+                    p=softmax(epistemic,
+                              temperature=1000))
+                # np.random.choice(
+                #    np.arange(len(action_plan))[epistemic == epistemic.max()]
+                # )
+                # np.random.choice(
                 #     np.arange(len(action_plan))[epistemic == epistemic.max()]
                 # )
-                # a = np.random.randint(2) #action_plan[best_action_plan_index][0]
-                a = random_action_plan[t_idx]
+                a = action_plan[selected_action_plan_index][0]
+                # a = np.random.randint(n_action) # random_action_plan[t_idx]
 
                 # Update velocity
                 tr_vel = transition_velocity_tapvv[t_idx, a, p_idx, v_idx, :]
@@ -124,7 +138,7 @@ def evaluate_epistemic(
                 error = np.mean((transition_velocity_tapvv - compute_q(alpha_tapvv))**2)
                 hist_err[sample, epoch] = error
                 epoch += 1
-
+        print("run", sample, f"error {hist_err[sample, -1]:.6f}")
     return {"policy": "act-inf", "error": hist_err}
 
 
@@ -144,20 +158,29 @@ def main():
     seed_transition_velocity = 123
     n_sample_transition_velocity = 200
 
-    n_episode_per_run = 2
-    n_run = 1
+    n_episode_per_run = 200
+    n_run = 20
 
-    # r_baseline = run_baseline_epistemic(
-    #     timestep=timestep,
-    #     position=position,
-    #     velocity=velocity,
-    #     action=action,
-    #     n_run=n_run,
-    #     n_episode_per_run=n_episode_per_run,
-    #     friction_factor=friction_factor,
-    #     seed_transition_velocity=seed_transition_velocity,
-    #     n_sample_transition_velocity=n_sample_transition_velocity,
-    # )
+    bkp_baseline = "bkp/epistemic_baseline.pkl"
+
+    if not os.path.exists(bkp_baseline):
+        os.makedirs(os.path.dirname(bkp_baseline), exist_ok=True)
+        r_baseline = run_baseline_epistemic(
+            timestep=timestep,
+            position=position,
+            velocity=velocity,
+            action=action,
+            n_run=n_run,
+            n_episode_per_run=n_episode_per_run,
+            friction_factor=friction_factor,
+            seed_transition_velocity=seed_transition_velocity,
+            n_sample_transition_velocity=n_sample_transition_velocity,
+        )
+        with open(bkp_baseline, "wb") as f:
+            pickle.dump(r_baseline, f)
+    else:
+        with open(bkp_baseline, "rb") as f:
+            r_baseline = pickle.load(f)
 
     r_act_inf = evaluate_epistemic(
         timestep=timestep,
@@ -170,7 +193,7 @@ def main():
         n_sample_transition_velocity=n_sample_transition_velocity,
         n_run=n_run)
 
-    plot_error([r_act_inf])
+    plot_error([r_baseline, r_act_inf])
 
 
 if __name__ == "__main__":

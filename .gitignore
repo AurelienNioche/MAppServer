@@ -141,3 +141,4 @@ dmypy.json
 /log/
 
 .DS_Store
+/demo/bkp/

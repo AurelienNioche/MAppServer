@@ -10,7 +10,8 @@ def compute_q(alpha):
 
 def kl_div_dirichlet(alpha_coeff, beta_coeff):
     """
-        https://statproofbook.github.io/P/dir-kl.html
+    Compute KL divergence between two Dirichlet distributions.
+    https://statproofbook.github.io/P/dir-kl.html
     """
     alpha_0 = np.sum(alpha_coeff)
     beta_0 = np.sum(beta_coeff)
@@ -24,7 +25,7 @@ def kl_div_dirichlet(alpha_coeff, beta_coeff):
     return kl
 
 
-def compute_sum_kl_div_dirichlet(alpha_tapvv_rollout, alpha_tapvv):
+def compute_sum_kl_div_dirichlet(alpha_rollout, alpha):
     # sum_kl = 0
     # for a_idx in range(n_action):
     #     for p_idx in range(n_position):
@@ -43,17 +44,17 @@ def compute_sum_kl_div_dirichlet(alpha_tapvv_rollout, alpha_tapvv):
     #                 )
     #                 sum_kl += kl
     # return sum_kl
-        alpha_0 = np.sum(alpha_tapvv_rollout, axis=-1)
-        beta_0 = np.sum(alpha_tapvv, axis=-1)
-        sum_kl = np.sum(
-            gammaln(alpha_0)
-            - gammaln(beta_0)
-            - np.sum(gammaln(alpha_tapvv_rollout), axis=-1)
-            + np.sum(gammaln(alpha_tapvv), axis=-1)
-            + np.sum(
-                (alpha_tapvv_rollout - alpha_tapvv)
-                * (digamma(alpha_tapvv_rollout) - digamma(alpha_0[..., np.newaxis])),
-                axis=-1,
-            )
+    alpha_0 = np.sum(alpha_rollout, axis=-1)
+    beta_0 = np.sum(alpha, axis=-1)
+    sum_kl = np.sum(
+        gammaln(alpha_0)
+        - gammaln(beta_0)
+        - np.sum(gammaln(alpha_rollout), axis=-1)
+        + np.sum(gammaln(alpha), axis=-1)
+        + np.sum(
+            (alpha_rollout - alpha)
+            * (digamma(alpha_rollout) - digamma(alpha_0[..., np.newaxis])),
+            axis=-1,
         )
-        return sum_kl
+    )
+    return sum_kl
