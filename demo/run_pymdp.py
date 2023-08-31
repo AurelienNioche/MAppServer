@@ -19,7 +19,7 @@ agent.D[0] = utils.onehot(0, agent.num_states[0])
 agent.C[1][1] = 3.0
 agent.C[1][2] = -3.0
 
-T = 5  # number of timesteps
+T = 2  # number of timesteps
 
 obs = env.reset()  # reset the environment and get an initial observation
 
@@ -46,4 +46,3 @@ for t in range(T):
 
     msg = """[Step {}] Observation: [{},  {}, {}]"""
     print(msg.format(t, location_observations[obs[0]], reward_observations[obs[1]], cue_observations[obs[2]]))
-    break
