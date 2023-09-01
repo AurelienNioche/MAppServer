@@ -49,10 +49,12 @@ pA_history = []
 all_actions = np.zeros((T, 2))
 for t in range(T):
 
-    print("t = {}".format(t))
+    print(f"t = {t}")
     print("*" * 50)
 
     qx = agent.infer_states(obs)
+
+    print(f"qx = {qx}")
 
     q_pi, efe = agent.infer_policies()
 
