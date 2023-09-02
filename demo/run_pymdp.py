@@ -19,7 +19,7 @@ agent.D[0] = utils.onehot(0, agent.num_states[0])
 agent.C[1][1] = 3.0
 agent.C[1][2] = -3.0
 
-T = 1  # number of timesteps
+T = 2  # number of timesteps
 
 obs = env.reset()  # reset the environment and get an initial observation
 
@@ -36,6 +36,7 @@ for t in range(T):
     qx = agent.infer_states(obs)
 
     q_pi, efe = agent.infer_policies()
+    print(f"efe{efe}")
 
     action = agent.sample_action()
 
