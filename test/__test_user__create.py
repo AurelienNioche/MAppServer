@@ -24,22 +24,37 @@ def generate_uuid():
 @transaction.atomic
 def create_test_user():
 
-    challenge_offer_hours = [8, 17, 20]
-    challenge_offer_times = [time(hour=h, minute=0, second=0, microsecond=0, tzinfo=pytz.timezone(TIME_ZONE))
-                             for h in challenge_offer_hours]
-
+    first_challenge_offer = "07:30"
+    # Username (can be anything)
     username = "123test"
-    starting_date = datetime.now(tz=pytz.timezone(TIME_ZONE))
+    # Starting date of the experiment
+    starting_date = "28/03/2024"
+    # Experiment name (can be anything)
     experiment_name = "not-even-an-alpha-test"
+    # Amount of money already in the chest
     base_chest_amount = 6
     objective = 10
+    # Amount of reward (in pounds) for each challenge completed
     amount = 0.4
+    # Number of days to create challenges for
     n_day = 2
-    offer_window = timedelta(hours=1)
-    challenge_window = timedelta(hours=1)
-    init_delta_after_offer_end = timedelta(hours=0)
+    offer_window = timedelta(minutes=30)
+    challenge_window = timedelta(hours=4)
+    n_challenge = 3
 
     print("BASIC TEST USER CREATION")
+
+    # --------------------------------------------------------------
+    # Deal with dates and times
+
+    starting_date = datetime.strptime(starting_date, "%d/%m/%Y")
+    starting_date = pytz.timezone(TIME_ZONE).localize(starting_date)
+
+    dt_first_challenge_offer = datetime.strptime(first_challenge_offer, "%H:%M")
+    dt_first_challenge_offer = pytz.timezone(TIME_ZONE).localize(dt_first_challenge_offer)
+
+    print(starting_date)
+    # ---------------------------------------------------------------
 
     u = User.objects.filter(username=username).first()
     if u is not None:
@@ -72,19 +87,18 @@ def create_test_user():
 
     current_date = starting_date
     for _ in range(n_day):
-        for ch_t in challenge_offer_times:
+        current_time = dt_first_challenge_offer
+        for ch_t in range(n_challenge):
 
             dt_offer_begin = datetime(
                 current_date.year, current_date.month, current_date.day,
-                ch_t.hour, ch_t.minute, ch_t.second, ch_t.microsecond,
+                current_time.hour, current_time.minute, current_time.second, current_time.microsecond,
                 current_date.tzinfo)
 
-            # uuid_tag = uuid.uuid4()
-            # uuid_tag_str = str(uuid_tag)
-
+            # noinspection PyTypeChecker
             dt_offer_end = dt_offer_begin + offer_window
-            dt = dt_offer_end + init_delta_after_offer_end
-            dt_end = dt + challenge_window
+            dt_begin = dt_offer_end
+            dt_end = dt_begin + challenge_window
 
             random_uuid = generate_uuid()
 
@@ -92,12 +106,14 @@ def create_test_user():
                 user=u,
                 dt_offer_begin=dt_offer_begin,
                 dt_offer_end=dt_offer_end,
-                dt_begin=dt,
+                dt_begin=dt_begin,
                 dt_end=dt_end,
                 objective=objective,
                 amount=amount,
                 android_tag=random_uuid,
                 server_tag=random_uuid)
+
+            current_time = dt_end
 
         current_date += timedelta(days=1)
 

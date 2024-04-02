@@ -111,8 +111,8 @@ class Challenge(models.Model):
     objective_reached_dt = models.DateTimeField(default=None, null=True)
     cashed_out = models.BooleanField(default=False, null=False)
     cashed_out_dt = models.DateTimeField(default=None, null=True)
-
     android_id = models.IntegerField(default=None, null=True)
+    timestep_index = models.IntegerField(default=None, null=True)  # For the assistant
 
     def to_android_dict(self):
         return to_android_dict(self)

@@ -1,7 +1,8 @@
 import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE",
-                      "MAppServer.settings")
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
+
 application = get_wsgi_application()
 
 import json
@@ -11,35 +12,42 @@ from MAppServer.settings import APP_VERSION
 from user.models import User, Status
 
 
+URL = "ws://127.0.0.1:8080/ws"
+USERNAME = "123test"
+
+# NGROK_URL = "ff87-130-209-252-154.ngrok-free.app"
+# URL = f"wss://{NGROK_URL}/ws",
+
+
 class Bot(websocket.WebSocketApp):
     """
     ws://192.168.0.14:8080/ws
     wss://samoa.dcs.gla.ac.uk/mapp/ws
     """
-    def __init__(
-            self, url="wss://4008-130-209-157-52.ngrok-free.app/ws",
-            username="123test",
-            waiting_time=2):
 
+    def __init__(
+        self,
+        waiting_time=2,
+    ):
         super().__init__(
-            url,
+            URL,
             on_message=self.on_message,
             on_error=self.on_error,
             on_close=self.on_close,
-            on_open=self.on_open)
+            on_open=self.on_open
+        )
 
-        self.username = username
+        self.username = USERNAME
 
         # Websocket parameters
         self.waiting_time = waiting_time
 
     @staticmethod
     def on_message(ws, json_string):
-
         print(f"I received: {json_string}")
         msg = json.loads(json_string)
         subject = msg["subject"]
-        f = getattr(ws, f'after_{subject}')
+        f = getattr(ws, f"after_{subject}")
         f(msg)
 
     @staticmethod
@@ -48,27 +56,27 @@ class Bot(websocket.WebSocketApp):
 
     @staticmethod
     def on_close(ws, close_status_code, close_msg):
-        print(f"I'm closing. Code={close_status_code}. Msg={close_msg}")
+        print(f"I'm closing.")
+        if close_status_code or close_msg:
+            print(f"Close status code: {close_status_code}")
+            print(f"Close message: {close_msg}")
 
     @staticmethod
     def on_open(ws):
-
-        print("I'm open")
+        print("I'm open.")
         ws.login()
 
     def send_message(self, message):
-
-        string_msg = json.dumps(message)
-        print(f"I'm sending {string_msg}")
+        string_msg = json.dumps(message, indent=4)
+        print(f"I'm sending: {string_msg}")
         self.send(string_msg)
 
     def login(self):
-
         message = {
             "subject": "login",
             "appVersion": APP_VERSION,
             "username": self.username,
-            "resetUser": False
+            "resetUser": False,
         }
         self.send_message(message)
 
@@ -79,26 +87,28 @@ class Bot(websocket.WebSocketApp):
         self.update()
 
     def update(self):
-
         message = {
             "subject": "update",
             "appVersion": APP_VERSION,
             "username": self.username,
-            "records": json.dumps([]),
-            "activities": json.dumps([]),
-            "status": json.dumps(User.objects.filter(username=self.username)
-                                 .first().status_set.first().to_android_dict()),
+            "steps": json.dumps([]),
+            "status": json.dumps(
+                User.objects.filter(username=self.username)
+                .first()
+                .status_set.first()
+                .to_android_dict()
+            ),
             "interactions": json.dumps([]),
-            "unsyncedChallenges": json.dumps([]),
+            "unSyncedChallenges": json.dumps([]),
         }
         self.send_message(message)
 
     def after_update(self, msg):
-        print("after update, I'm done")
+        print("Update done, test successful!")
+        self.close()
 
 
 def main():
-
     websocket.enableTrace(True)
     ws = Bot()
     ws.run_forever()

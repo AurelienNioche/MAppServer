@@ -164,9 +164,10 @@ DOWNLOAD_FOLDER = f"{DATA_FOLDER}/{LATEST_DUMP_FOLDER}"
 DOWNLOAD_FOLDER_ABSOLUTE_PATH = f"{BASE_DIR}/{DATA_FOLDER}/{LATEST_DUMP_FOLDER}"
 
 CSRF_TRUSTED_ORIGINS = [
-    f"http://{SERVER_DOMAIN}",
+    # f"http://{SERVER_DOMAIN}",
     f"https://{SERVER_DOMAIN}",
-    "https://*.ngrok-free.app"]
+    "https://*.ngrok-free.app",
+    "https://localhost:8080"]
 
 # Celery settings ------------------------------
 CELERY_TIMEZONE = "Europe/London"

@@ -15,24 +15,11 @@ Instructions are given for MacOS (unless specified otherwise), using homebrew pa
     brew install python3
 
 Version used:
-- Python 3.7.7 
 - Python 3.9.13
 
 #### Python libraries
 
     pip3 install -r requirements.txt
-
-Version used:
-
-- pytz=2020.1
-- python-dateutil=2.8.1
-- Django=3.0.7
-- numpy=1.18.5
-- pandas=1.0.4
-- scipy=1.4.1
-- websocket-client=0.57.0
-- requests=2.23.0
-- channels=2.4.0
 
 
 #### PostgreSQL (MacOS)
@@ -316,6 +303,30 @@ Add to config file:
 
 * Check the settings in `src/Config` in the Android project
 * Check for responsiveness
+* Implement the belief update system
+* Implement the update of the challenges (action selection)
+
+## Challenges update
+
+* When a client connects for updating, 
+  * Look at the challenges that the client wants to update (because offer accepted, and so on). 
+    - Whether the `server_tag` is different or not, then use the client data to update the server data.
+    Make sure that this will mean that the challenge is rolled back to the initial state in case 
+      the `server_tag` is different. Maybe in the future, add a comment in the db, or a related 
+      field with all the update history.
+* Then, look if new activity data. If so:
+  * Update the activity data
+  * Update the beliefs of the model
+  * If so, possibly update the challenges.
+      - if a challenge offer window already began, it can not be updated
+      - otherwise, update the challenge
+      - When updating, update the variables in the `Challenge` class, and generate a new 
+        server tag 
+          `server_tag`
+  * Check which challenges have been updated by comparing the `server_tag` with the 
+    `android_tag`. Give the list of challenges to the client.
+
+# Extra
 
 * Optional: Give a thought about allowing backup or not (?)
 

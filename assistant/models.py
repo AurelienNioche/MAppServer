@@ -17,8 +17,8 @@ class Alpha(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
 
-    # 5D array: n_timestep, n_action, n_position, n_velocity, n_velocity
-    alpha = ArrayField(ArrayField(ArrayField(ArrayField(ArrayField(models.FloatField())))))
+    # 4D array: n_action, n_timestep, n_velocity, n_velocity
+    alpha = ArrayField(ArrayField(ArrayField(ArrayField(models.FloatField()))))
 
 
 class Velocity(models.Model):
