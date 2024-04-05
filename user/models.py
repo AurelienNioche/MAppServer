@@ -92,27 +92,42 @@ class Activity(models.Model):
 
 class Challenge(models.Model):
 
-    # Set at creation
+    # Set at creation ----------------------------------------------------------
+    # The user to whom the challenge belongs to
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # When the challenge can be accepted by the user
     dt_offer_begin = models.DateTimeField(default=None, null=False)
     dt_offer_end = models.DateTimeField(default=None, null=False)
+    # When the challenge is actually active (actionable by the assistant but need to be set to default at creation)
     dt_begin = models.DateTimeField(default=None, null=False)
     dt_end = models.DateTimeField(default=None, null=False)
+    # The earliest time the challenge could be active
+    dt_earliest = models.DateTimeField(default=None, null=False)
+    # The objective of the challenge (as number of steps)
     objective = models.IntegerField(default=None, null=False)
+    # The reward for the challenge (as pounds)
     amount = models.FloatField(default=None, null=False)
+    # The number of steps the user has taken starting from the beginning of the challenge
     step_count = models.IntegerField(default=None, null=True)
+    # Server tag/android tag to manage the synchronization
     server_tag = models.CharField(default=None, null=True, max_length=256)
     android_tag = models.CharField(default=None, null=True, max_length=256)
 
-    # Set after interaction with the user
+    # Set after interaction with the user -------------------------------
+    # Whether the challenge has been accepted by the user
     accepted = models.BooleanField(default=False, null=False)
+    # When the challenge has been accepted by the user
     accepted_dt = models.DateTimeField(default=None, null=True)
+    # Whether the challenge has been completed by the user
     objective_reached = models.BooleanField(default=False, null=False)
+    # When the challenge has been completed by the user
     objective_reached_dt = models.DateTimeField(default=None, null=True)
+    # Whether the challenge has been cashed out by the user
     cashed_out = models.BooleanField(default=False, null=False)
+    # When the challenge has been cashed out by the user
     cashed_out_dt = models.DateTimeField(default=None, null=True)
+    # Android id to manage the synchronization (essentially for debug purposes)
     android_id = models.IntegerField(default=None, null=True)
-    timestep_index = models.IntegerField(default=None, null=True)  # For the assistant
 
     def to_android_dict(self):
         return to_android_dict(self)
