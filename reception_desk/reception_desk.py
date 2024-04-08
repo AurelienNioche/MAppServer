@@ -60,12 +60,12 @@ def read_android_json(json_string):
     Convert a JSON string from Android to a Python dictionary
     """
     android_obj = json.loads(json_string)
-    if type(android_obj) is dict:
+    if isinstance(android_obj, dict):
         return convert_android_dict_to_python_dict(android_obj)
-    elif type(android_obj) is list:
+    elif isinstance(android_obj, list):
         return [convert_android_dict_to_python_dict(a) for a in android_obj]
     else:
-        raise ValueError("Unknown type")
+        raise ValueError(f"Unknown type: `{type(android_obj)}` not a dict or a list.")
 
 
 # ------------------ Login ------------------------------

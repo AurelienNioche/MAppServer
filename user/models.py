@@ -77,9 +77,9 @@ class Activity(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     dt = models.DateTimeField(default=None, null=False)
-    dt_last_boot = models.DateTimeField(default=None, null=False)
-    step_last_boot = models.IntegerField(default=None, null=False)
     step_midnight = models.IntegerField(default=None, null=False)
+    dt_last_boot = models.DateTimeField(default=None, null=True)
+    step_last_boot = models.IntegerField(default=None, null=True)
 
     android_id = models.IntegerField(default=None, null=True)
 

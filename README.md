@@ -131,7 +131,7 @@ Remove the db
 * Create the database and make the migrations
 
 
-        createdb ActiveTeachingServer --owner postgres
+        createdb <db name> --owner postgres
         python manage.py makemigrations
         python manage.py migrate
 
@@ -299,32 +299,45 @@ Add to config file:
     ALLOWED_HOSTS = ["*"]
     CSRF_TRUSTED_ORIGINS = ["http://pearse.dcs.gla.ac.uk"]
 
-## TODO
+## TODO (right before launching)
 
 * Check the settings in `src/Config` in the Android project
+* Check the settings in the server
+
+## TODO (UX/UI)
+
 * Check for responsiveness
+
+## TO DO (backend features)
+
 * Implement the belief update system
 * Implement the update of the challenges (action selection)
 
-## Challenges update
+## TO DO (Feature = Challenge update)
 
-* When a client connects for updating, 
-  * Look at the challenges that the client wants to update (because offer accepted, and so on). 
-    - Whether the `server_tag` is different or not, then use the client data to update the server data.
-    Make sure that this will mean that the challenge is rolled back to the initial state in case 
-      the `server_tag` is different. Maybe in the future, add a comment in the db, or a related 
-      field with all the update history.
-* Then, look if new activity data. If so:
-  * Update the activity data
-  * Update the beliefs of the model
-  * If so, possibly update the challenges.
-      - if a challenge offer window already began, it can not be updated
-      - otherwise, update the challenge
-      - When updating, update the variables in the `Challenge` class, and generate a new 
-        server tag 
-          `server_tag`
-  * Check which challenges have been updated by comparing the `server_tag` with the 
-    `android_tag`. Give the list of challenges to the client.
+=> TEST THIS:
+  * When a client connects for updating, 
+    * Look at the challenges that the client wants to update (because offer accepted, and so on). 
+      - Whether the `server_tag` is different or not, then use the client data to update the server data.
+      Make sure that this will mean that the challenge is rolled back to the initial state in case 
+        the `server_tag` is different. Maybe in the future, add a comment in the db, or a related 
+        field with all the update history.
+    * Then, look if new activity data. If so:
+      * Update the activity data
+      * Update the beliefs of the model
+      * If so, possibly update the challenges.
+          - if a challenge offer window already began, it can not be updated
+          - otherwise, update the challenge
+          - When updating, update the variables in the `Challenge` class, and generate a new 
+            server tag 
+              `server_tag`
+      * Check which challenges have been updated by comparing the `server_tag` with the 
+        `android_tag`. Give the list of challenges to the client.
+
+=> FULL ROLLOUT
+  * Test with a virtual user - Step 1 with bullshit steps
+  * Test with a virtual user - Step 2 with generative model
+  * Using the app
 
 # Extra
 

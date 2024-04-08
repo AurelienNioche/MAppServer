@@ -28,7 +28,7 @@ def create_test_user():
     # Username (can be anything)
     username = "123test"
     # Starting date of the experiment
-    starting_date = "28/03/2024"
+    starting_date = "08/04/2024"
     # Experiment name (can be anything)
     experiment_name = "not-even-an-alpha-test"
     # Amount of money already in the chest
@@ -106,6 +106,8 @@ def create_test_user():
                 user=u,
                 dt_offer_begin=dt_offer_begin,
                 dt_offer_end=dt_offer_end,
+                # Earliest time the challenge could be active is the end of the offer window
+                dt_earliest=dt_offer_end,
                 dt_begin=dt_begin,
                 dt_end=dt_end,
                 objective=objective,
