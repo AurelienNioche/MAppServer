@@ -103,6 +103,8 @@ class Challenge(models.Model):
     dt_end = models.DateTimeField(default=None, null=False)
     # The earliest time the challenge could be active
     dt_earliest = models.DateTimeField(default=None, null=False)
+    # The latest time the challenge could be active
+    dt_latest = models.DateTimeField(default=None, null=False)
     # The objective of the challenge (as number of steps)
     objective = models.IntegerField(default=None, null=False)
     # The reward for the challenge (as pounds)

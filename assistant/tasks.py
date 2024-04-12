@@ -1,10 +1,12 @@
+import django.db.models
 import numpy as np
 # from celery import shared_task
-from scipy import interpolate, stats
-from datetime import datetime, time
+from scipy import stats
+from datetime import datetime, time, timedelta
 import itertools
 from scipy.special import softmax
 from pytz import timezone
+import uuid
 
 from MAppServer.settings import TIME_ZONE
 
@@ -14,8 +16,7 @@ from assistant.models import Velocity, Position, Alpha, User
  #    N_POSITION, POSITIONS, VELOCITIES, EXPERIMENT, DT
 
 EXPERIMENT = "april2024"
-HORIZON = 24
-N_TIMESTEP = 24*4  # 15 minutes
+N_TIMESTEP = HORIZON = 24*4  # 15 minutes
 N_ACTION = 2
 N_VELOCITY = 24
 N_POSITION = 48
@@ -43,6 +44,12 @@ def normalize_last_dim(alpha: np.ndarray):
     sum_col = np.sum(alpha, axis=-1)
     sum_col[sum_col <= 0.0] = 1
     return alpha / np.expand_dims(sum_col, axis=-1)
+
+
+# ------------------------------
+
+def generate_uuid():
+    return str(uuid.uuid4())
 
 
 # ------------------------------
@@ -99,7 +106,7 @@ def extract_step_events(u: User):
 
     # min_date = dt.min().date()
     days = np.asarray([_dt.date() for _dt in dt])
-    print("days")
+    # print("days")
     uniq_days = list(np.sort(np.unique(days)))
     all_timestamp = (
         np.asarray(
@@ -200,7 +207,7 @@ def get_day_index(dt, dates):
     """
     Get the index of the day in the list of dates
     """
-    print("dates", dates, "dt.date()", dt.date())
+    # print("dates", dates, "dt.date()", dt.date())
     return dates.index(dt.date())
 
 
@@ -229,23 +236,23 @@ def get_future_challenges(u: User, now: datetime):
     # for c in today_u_challenges.all():
     #     print(c.dt_offer_begin)
     not_yet = today_u_challenges.filter(dt_offer_begin__gt=now)
-    print("Not yet challenges:")
-    for c in not_yet.all():
-        print(c.dt_offer_begin)
+    # print("Not yet challenges:")
+    # for c in not_yet.all():
+    # print(c.dt_offer_begin)
     sorted_challenges = not_yet.order_by('dt_earliest')
 
     return sorted_challenges
 
 
-def select_action_plan(alpha_atvv, transition_position_pvp, v_idx, pos_idx, t_idx, action_plan):
+def select_action_plan(alpha_atvv, transition_position_pvp, v_idx, pos_idx, t_idx, action_plans):
 
     """
     Select the best action to take
     """
 
-    h = len(action_plan[0])
+    h = len(action_plans[0])
 
-    n_action_plan = len(action_plan)
+    n_action_plan = len(action_plans)
 
     # Initialize action plan values
     pragmatic = np.zeros(n_action_plan)
@@ -255,7 +262,7 @@ def select_action_plan(alpha_atvv, transition_position_pvp, v_idx, pos_idx, t_id
     qt = normalize_last_dim(alpha_t)
 
     # Compute value of each action plan
-    for ap_index, ap in enumerate(action_plan):
+    for ap_index, ap in enumerate(action_plans):
 
         qvs = np.zeros((h, VELOCITY.size))
         qps = np.zeros((h, POSITION.size))
@@ -305,27 +312,27 @@ def select_action_plan(alpha_atvv, transition_position_pvp, v_idx, pos_idx, t_id
         pragmatic[ap_index] = np.sum(qps @ LOG_PRIOR)
 
     # Choose the best action plan
-    print("pragmatic", pragmatic)
-    print("epistemic", epistemic)
+    # print("pragmatic", pragmatic)
+    # print("epistemic", epistemic)
     if np.isnan(pragmatic).all() and np.isnan(epistemic).all():
-        print("All values are nan")
+        # print("All values are nan")
         return np.random.choice(range(n_action_plan))
 
     if not np.isnan(pragmatic).all() and not np.isnan(epistemic).all():
         efe = GAMMA*epistemic + pragmatic
     elif np.isnan(pragmatic).all():
-        print("Pragmatic values are all nan")
+        # print("Pragmatic values are all nan")
         efe = epistemic
     else:
-        print("Epistemic values are all nan")
+        # print("Epistemic values are all nan")
         efe = pragmatic
     close_to_max_efe = np.isclose(efe, efe.max())
-    print("efe", efe)
-    print("close to max", close_to_max_efe)
+    # print("efe", efe)
+    # print("close to max", close_to_max_efe)
     idx_close_to_max = np.where(close_to_max_efe)[0]
-    print("idx close to max", idx_close_to_max)
+    # print("idx close to max", idx_close_to_max)
     best_action_plan_index = np.random.choice(idx_close_to_max)
-    return action_plan[best_action_plan_index]
+    return best_action_plan_index
 
 
 def get_current_position_and_velocity(u, deriv_cumulative_steps, dates, now):
@@ -340,8 +347,8 @@ def get_current_position_and_velocity(u, deriv_cumulative_steps, dates, now):
 
     date = get_day_index(now, dates)
     ts = get_timestep(now)
-    print("date index", date)
-    print("timestep index", ts)
+    # print("date index", date)
+    # print("timestep index", ts)
 
     v = deriv_cumulative_steps[date, ts]
 
@@ -358,29 +365,75 @@ def get_current_position_and_velocity(u, deriv_cumulative_steps, dates, now):
     # pos_idx = np.digitize(first_challenge.position, POSITION, right=False) - 1
 
 
-def get_possible_action_plans(t_idx) -> list:
+def local(dt: datetime) -> datetime:
+    return dt.astimezone(timezone(TIME_ZONE))
+
+
+def get_possible_action_plans(
+        t_idx: int,
+        later_challenges: django.db.models.QuerySet
+) -> (list[np.ndarray], list[np.ndarray]):
 
     h = min(HORIZON, N_TIMESTEP - t_idx - 1)
+    # print("Horizon:", h, "t_idx", t_idx, "N_TIMESTEP", N_TIMESTEP)
 
     # TODO: Only implement possible action plans depending on challenges structure
-    action_plan = list(itertools.product(range(N_ACTION), repeat=h))
+    # action_plan = # list(itertools.product(range(N_ACTION), repeat=h))
 
-    print(f"action plan ({len(action_plan)})", action_plan)
-    return action_plan
+    strategies = []
+    related_timesteps = []
+
+    begin_of_day = local(later_challenges.first().dt_earliest).replace(hour=0, minute=0, second=0, microsecond=0)
+    delta_t = timedelta(seconds=SEC_IN_DAY/N_TIMESTEP)
+
+    for ch in later_challenges:
+        # print("Challenge:", local(ch.dt_earliest), local(ch.dt_latest))
+        ch_earliest_t_idx = get_timestep(ch.dt_earliest)
+        ch_latest_t_idx = get_timestep(ch.dt_latest)
+        duration_in_timestep = ch_latest_t_idx - ch_earliest_t_idx
+        # print(timedelta(seconds=duration_in_timestep*SEC_IN_DAY/N_TIMESTEP))
+        # print("duration in timestep", duration_in_timestep)
+        # print("duration in time", ch.dt_latest - ch.dt_earliest)
+        timesteps = np.arange(ch_earliest_t_idx, ch_latest_t_idx)
+        strategy = np.eye(duration_in_timestep, dtype=int)
+        strategies.append(strategy)
+        related_timesteps.append(timesteps)
+
+    action_plans = []
+    action_plans__datetime = []
+    for challenge_parts in itertools.product(*strategies):
+        action_plan = np.zeros(h, dtype=int)
+        action_plan__datetime = np.zeros(len(challenge_parts), dtype=datetime)
+        for i, challenge_part in enumerate(challenge_parts):
+            action_plan[related_timesteps[i] - t_idx] = challenge_part
+            action_plan__datetime[i] = begin_of_day + delta_t * related_timesteps[i][np.where(challenge_part == 1)[0][0]]
+
+        action_plans.append(action_plan)
+        action_plans__datetime.append(action_plan__datetime)
+
+    # print(f"action plan ({len(action_plan)})", action_plan)
+    return action_plans, action_plans__datetime
 
 
-def update_challenges_based_on_action_plan(u, action_plan, now):
+def update_challenges_based_on_action_plan(action_plan__datetime, later_challenges):
 
     """
     Update the challenges based on the action plan
     """
-    # TODO: Implement this
+    for ch, dt in zip(later_challenges, action_plan__datetime):
+        challenge_delta = ch.dt_end - ch.dt_begin
+        ch.dt_begin = dt
+        ch.dt_end = dt + challenge_delta
+        ch.server_tag = generate_uuid()
+        ch.save()
     return
 
 
-def update_beliefs(u: User, now: datetime = None):
+def update_beliefs(u: User, now: str = None):
     if now is None:
         now = datetime.now(tz=timezone(TIME_ZONE))
+    else:
+        now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
 
     print(f"Updating beliefs for user {u.username} at {now}")
     print("Now:", now)
@@ -414,13 +467,16 @@ def update_beliefs(u: User, now: datetime = None):
     first_challenge_dt = first_challenge.dt_offer_end  # Begin of the first challenge
     t_idx = get_timestep(first_challenge_dt)
 
-    action_plan = select_action_plan(
+    action_plans, action_plans__datetime = get_possible_action_plans(t_idx=t_idx, later_challenges=later_challenges)
+
+    action_plan_idx = select_action_plan(
         alpha_atvv=alpha_tvv,
         transition_position_pvp=transition_position_pvp,
-        v_idx=v_idx, pos_idx=pos_idx, t_idx=t_idx, action_plan=get_possible_action_plans(t_idx=t_idx))
+        v_idx=v_idx, pos_idx=pos_idx, t_idx=t_idx, action_plans=action_plans)
 
     # TODO: Implement the change of action, that is updating the challenge(s)
-    update_challenges_based_on_action_plan(u=u, action_plan=action_plan, now=now)
+    update_challenges_based_on_action_plan(action_plan__datetime=action_plans__datetime[action_plan_idx],
+                                           later_challenges=later_challenges)
 
 
     # # noinspection PyUnresolvedReferences

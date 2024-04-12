@@ -207,29 +207,21 @@ def sync_challenges(u, unsynced_challenges_json):
     synced_challenges_new_server_tags = []
 
     with transaction.atomic():
+        # Update the challenges that were updated by the user
         for entry in unsynced_challenges:
             u.challenge_set.filter(android_id=entry["android_id"]).update(**entry)
 
             synced_challenges_id.append(entry["android_id"])
             synced_challenges_new_server_tags.append(entry["android_tag"])
 
-        updated_challenges = u.challenge_set.exclude(android_tag=F("server_tag"))
-        for entry in updated_challenges:
-            synced_challenges_id.append(entry.android_tag)
-            synced_challenges_new_server_tags.append(entry.server_tag)
-
-    # TODO: Implement when assistant changed the challenges
-
-    with transaction.atomic():
-        # Then, update the challenges as by the assistant state
-        unsynced_challenges = u.challenge_set.filter(~Q(server_tag=F("android_tag")))
-        challenges = unsynced_challenges.order_by("dt_offer_begin")
-        challenges_android = [r.to_android_dict() for r in challenges]
+        # Get the challenges that were updated by the assistant
+        updated_challenges = u.challenge_set.exclude(android_tag=F("server_tag")).order_by("dt_offer_begin")
+        updated_challenges_android = [r.to_android_dict() for r in updated_challenges]
 
     return {
         "syncedChallengesId": json.dumps(synced_challenges_id),
         "syncedChallengesTag": json.dumps(synced_challenges_new_server_tags),
-        "updatedChallenges": json.dumps(challenges_android)
+        "updatedChallenges": json.dumps(updated_challenges_android)
     }
 
 
@@ -272,6 +264,7 @@ class RequestHandler:
         interactions_json = r.get("interactions", None)
         un_synced_challenges_json = r.get("unSyncedChallenges", None)
         status = r.get("status", None)
+        now = r.get("now", None)  # This is for testing purposes
         # Find the user
         u = User.objects.filter(username=username).first()
         if u is None:
@@ -295,7 +288,7 @@ class RequestHandler:
         if new_activity:
             # TODO: this might take a long time,
             #  would need to use Celery or something similar
-            assistant.tasks.update_beliefs(u=u)
+            assistant.tasks.update_beliefs(u=u, now=now)
         # Prepare the response
         r = {"subject": subject}
         r.update(get_last_activity_timestamp(u))

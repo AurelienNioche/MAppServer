@@ -22,9 +22,15 @@ URL = "ws://127.0.0.1:8080/ws"
 USERNAME = "123test"
 INIT_STATE = "experimentNotStarted"
 # WHen things will start
-FIRST_CHALLENGE_OFFER = "20:00"
+FIRST_CHALLENGE_OFFER = "7:30"
+# Define "now" for debug purposes
+NOW_TIME = "7:00"
+_now = datetime.now()
+_now_time = datetime.strptime(NOW_TIME, "%H:%M").time()
 # Starting date of the experiment
-STARTING_DATE = datetime.now().date().strftime("%d/%m/%Y")  # "28/03/2024"
+STARTING_DATE = _now.date().strftime("%d/%m/%Y")  # "28/03/2024"
+NOW = datetime.combine(date=_now.date(), time=_now_time,
+                       tzinfo=pytz.timezone(TIME_ZONE)).strftime("%d/%m/%Y %H:%M:%S")
 # Experiment name (can be anything)
 EXPERIMENT_NAME = "not-even-an-alpha-test"
 # Amount of money already in the chest
@@ -35,7 +41,8 @@ amount = 0.4
 # Number of days to create challenges for
 n_day = 1
 offer_window = timedelta(minutes=15)
-challenge_window = timedelta(hours=1)
+CHALLENGE_WINDOW = timedelta(hours=3)
+CHALLENGE_DURATION = timedelta(hours=1)
 n_challenge = 3
 
 
@@ -107,9 +114,10 @@ def create_test_user():
             print(f"Creating challenge for user {u.username} on {dt_offer_begin}.")
 
             # noinspection PyTypeChecker
-            dt_offer_end = dt_offer_begin + offer_window
+            dt_offer_end = dt_earliest = dt_offer_begin + offer_window
             dt_begin = dt_offer_end
-            dt_end = dt_begin + challenge_window
+            dt_end = dt_begin + CHALLENGE_DURATION
+            dt_latest = dt_earliest + CHALLENGE_WINDOW
 
             random_uuid = generate_uuid()
 
@@ -118,7 +126,8 @@ def create_test_user():
                 dt_offer_begin=dt_offer_begin,
                 dt_offer_end=dt_offer_end,
                 # Earliest time the challenge could be active is the end of the offer window
-                dt_earliest=dt_offer_end,
+                dt_earliest=dt_earliest,
+                dt_latest=dt_latest,
                 dt_begin=dt_begin,
                 dt_end=dt_end,
                 objective=objective,
@@ -126,7 +135,7 @@ def create_test_user():
                 android_tag=random_uuid,
                 server_tag=random_uuid)
 
-            current_time = dt_end
+            current_time = dt_latest
 
         current_date += timedelta(days=1)
 
@@ -136,13 +145,16 @@ def create_test_user():
     print("Test user creation completed successfully.")
 
 
-def generate_fake_steps(sec_delta_between_steps=60**2, step_delta_between_steps=20, n=10,
-                        base_step=10, base_sec=0) -> list[dict]:
+def generate_fake_steps(
+        sec_delta_between_steps=60**2, step_delta_between_steps=20, n=10,
+        base_step=10, base_sec=0
+) -> list[dict]:
     step_events = []
+    now = datetime.strptime(NOW, "%d/%m/%Y %H:%M:%S")
     for i in range(n):
         step_events.append(
             {
-                "ts": (datetime.now().timestamp() - base_sec - i*sec_delta_between_steps)*1000,
+                "ts": (now.timestamp() - base_sec - i*sec_delta_between_steps)*1000,
                 "step_midnight": base_step + step_delta_between_steps*i,
                 "android_id": i
             }
@@ -231,6 +243,7 @@ class Bot(websocket.WebSocketApp):
             "subject": "update",
             "appVersion": APP_VERSION,
             "username": self.username,
+            "now": NOW,  # For testing purposes
             "steps": json.dumps(generate_fake_steps()),
             "status": json.dumps(generate_status()),
             "interactions": json.dumps([]),
