@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 
 def normalize_last_dim(alpha):
@@ -23,7 +24,8 @@ def select_action_plan(
     Select the best action to take
     """
 
-    h = len(action_plans[0])
+    h = action_plans.shape[1]
+    # print("h", h)
 
     n_action_plan = len(action_plans)
 
@@ -76,7 +78,7 @@ def select_action_plan(
             # v_state_c = - 0   # Context is known and perfectly predictable in this case
 
             # if h_idx == h-1:
-            epistemic[ap_index] += v_model # + v_state_v  # + v_state_p  # + v_model
+            epistemic[ap_index] += v_model  # + v_state_v  # + v_state_p  # + v_model
 
             qvs[h_idx] = qv
             qps[h_idx] = qp
@@ -105,14 +107,14 @@ def select_action_plan(
     idx_close_to_max = np.where(close_to_max_efe)[0]
     # print("idx close to max", idx_close_to_max)
     best_action_plan_index = np.random.choice(idx_close_to_max)
-    return best_action_plan_index
+    return best_action_plan_index, pragmatic, epistemic
 
 
 def test_assistant_model(
         position,
         velocity,
         timestep,
-        n_episode,
+        n_episodes,
         n_restart,
         alpha_jitter,
         transition_velocity_atvv,
@@ -121,13 +123,13 @@ def test_assistant_model(
         log_prior_position,
         gamma, ):
 
-    hist_err = np.zeros((n_restart, n_episode*(timestep.size-1)))
-    hist_pos = np.zeros((n_restart, n_episode, timestep.size-1))
+    hist_err = np.zeros((n_restart, n_episodes*(timestep.size-1)))
+    hist_pos = np.zeros((n_restart, n_episodes, timestep.size-1))
     hist_vel = np.zeros_like(hist_pos)
 
     hist_a = np.zeros((n_restart, timestep.size-1))
 
-    hist_epistemic = np.zeros((n_restart, n_episode, timestep.size-1))
+    hist_epistemic = np.zeros((n_restart, n_episodes, len(action_plans)))
     hist_pragmatic = np.zeros_like(hist_epistemic)
 
     init_pos_idx = np.absolute(position).argmin()  # Something close to 0
@@ -135,7 +137,7 @@ def test_assistant_model(
 
     n_action = np.unique(action_plans).size
 
-    for sample in range(n_restart):
+    for sample in tqdm(range(n_restart)):
 
         # Initialize alpha
         alpha_atvv = np.zeros((n_action, timestep.size-1, velocity.size, velocity.size)) + alpha_jitter
@@ -149,13 +151,13 @@ def test_assistant_model(
         epoch = 0
 
         # with tqdm(total=n_episode) as pbar:
-        for ep_idx in range(n_episode):
+        for ep_idx in range(n_episodes):
 
             # Seed for reproducibility
             np.random.seed(ep_idx*12 + sample*123)
 
             # Select action plan
-            action_plan_idx = select_action_plan(
+            action_plan_idx, pr_value, ep_value = select_action_plan(
                 log_prior_position=log_prior_position,
                 gamma=gamma,
                 position=position,
@@ -168,7 +170,16 @@ def test_assistant_model(
                 action_plans=action_plans
             )
 
+            # Record values
+            hist_epistemic[sample, ep_idx] = ep_value
+            hist_pragmatic[sample, ep_idx] = pr_value
+
             policy = action_plans[action_plan_idx]
+
+            # policy = np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0], dtype=int)
+
+            # print("ep_idx", ep_idx)
+            # print("policy", policy)
 
             # Run the policy
             v_idx = init_v_idx
@@ -192,8 +203,8 @@ def test_assistant_model(
                 pos_idx = np.random.choice(position.size, p=transition_position_pvp[pos_idx, v_idx, :])
 
                 # Record position and velocity
-                hist_pos[sample, t_idx] = position[pos_idx]
-                hist_vel[sample, t_idx] = velocity[v_idx]
+                hist_pos[sample, ep_idx, t_idx] = position[pos_idx]
+                hist_vel[sample, ep_idx, t_idx] = velocity[v_idx]
 
                 # Log
                 error = np.mean(np.absolute(transition_velocity_atvv - normalize_last_dim(alpha_atvv)))

@@ -31,8 +31,9 @@ PSEUDO_COUNT_JITTER = 1e-3
 
 N_SAMPLES = 1000
 CHILD_MODELS_N_COMPONENTS = 3
-LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)))
-N_RESTART = 5
+LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
+N_RESTART = 4
+N_EPISODES = 200
 
 
 def generative_model():
@@ -81,7 +82,7 @@ def generative_model():
     action_plans[:] = np.eye(h)
 
     # Run the baseline
-    baselines = baseline.run(
+    runs = baseline.run(
         action_plans=action_plans,
         transition_velocity_atvv=transition_velocity_atvv,
         transition_position_pvp=transition_position_pvp,
@@ -89,14 +90,14 @@ def generative_model():
         n_restart=N_RESTART
     )
 
-    plot.runs(*baselines)
+    plot.runs(*runs)
 
     # Select action plan
-    run = test_assistant_model(
+    af_run = test_assistant_model(
         action_plans=action_plans,
         log_prior_position=LOG_PRIOR,
         gamma=1.0,
-        n_episode=400,
+        n_episodes=N_EPISODES,
         alpha_jitter=0.1,
         position=POSITION,
         velocity=VELOCITY,
@@ -105,8 +106,9 @@ def generative_model():
         timestep=TIMESTEP,
         n_restart=N_RESTART
     )
-
-    plot.runs(*baselines, run)
+    runs.append(af_run)
+    plot.runs(*runs)
+    plot.plot_af(af_run)
 
 
 if __name__ == "__main__":

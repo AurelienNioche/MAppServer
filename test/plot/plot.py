@@ -85,8 +85,8 @@ def runs(*args, figsize=(4, 3)):
         hist_vel = r["velocity"]
 
         if len(hist_pos.shape) == 3:
-            hist_pos = hist_pos[:, -1, :]  # Take the last learning episode only
-            hist_vel = hist_vel[:, -1, :]  # Take the last learning episode only
+            hist_pos = hist_pos[:, -1, :].copy()  # Take the last learning episode only
+            hist_vel = hist_vel[:, -1, :].copy()  # Take the last learning episode only
 
         label = policy.replace("-", " ").capitalize()
         pos = hist_pos.mean(axis=0)
@@ -239,3 +239,38 @@ def q(alpha, title=r"$\alpha$", figsize=(6, 2), cmap="viridis", between_0_and_1=
 
     else:
         raise ValueError
+
+
+def plot_af(run):
+
+    epistemic = run["epistemic"]
+    pragmatic = run["pragmatic"]
+    # actions = run["best_action_plan"]
+    n_sample, n_episode, n_timestep = epistemic.shape
+
+    samples = list(range(n_sample))[:min(n_sample, 3)]
+    all_ep = list(range(n_episode))
+    episodes = all_ep[:min(n_episode, 4)] + all_ep[-4:]
+
+    fig, axes = plt.subplots(figsize=(4*len(samples), 3*len(episodes)), nrows=len(episodes), ncols=len(samples), sharex=True, sharey=True)
+    fig.set_tight_layout(True)
+
+    for sample in samples:
+
+        for row_idx, ep_idx in enumerate(episodes):
+
+            ax = axes[row_idx, sample]
+
+            ax.plot(np.arange(n_timestep), epistemic[sample, ep_idx], label="epistemic", color="C0")
+            ax.set_ylabel("epistemic value")
+            ax.legend()
+
+            ax.legend()
+
+            ax = ax.twinx()
+
+            ax.plot(np.arange(n_timestep), pragmatic[sample, ep_idx], label="pragmatic", color="C1")
+            ax.set_ylabel("pragmatic value")
+
+            ax.set_xlabel("action plan")
+    plt.show()
