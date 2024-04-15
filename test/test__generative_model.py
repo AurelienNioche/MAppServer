@@ -2,9 +2,8 @@ import numpy as np
 import os
 from scipy.special import softmax
 
-from generative_model.activity import generate_nudge_effect, generate_observations
-from generative_model.fit import fit_model
-from generative_model.sample import sample
+from generative_model.core import generative_model
+
 
 from data.data import load_data
 
@@ -36,51 +35,14 @@ N_RESTART = 4
 N_EPISODES = 200
 
 
-def generative_model():
-
-    # Load data
-    step_events = load_data(user=USER, data_path=DATA_FOLDER)
-
-    # Fit the model
-    model, transforms = fit_model(step_events=step_events, child_models_n_components=CHILD_MODELS_N_COMPONENTS)
-
-    step_events = sample(model=model, transforms=transforms, n_samples=N_SAMPLES)
-
-    activity_samples = compute_deriv_cum_steps(step_events=step_events, timestep=TIMESTEP)
-
-    nudge_effect = generate_nudge_effect(timestep=TIMESTEP, n_samples=N_SAMPLES)
-
-    observations, actions = generate_observations(
-        activity_samples=activity_samples,
-        nudge_effect=nudge_effect,
-        timestep=TIMESTEP
+def main():
+    transition_velocity_atvv, transition_position_pvp, action_plans = generative_model(
+        user=USER, data_path=DATA_FOLDER,
+        timestep=TIMESTEP, n_samples=N_SAMPLES,
+        child_models_n_components=CHILD_MODELS_N_COMPONENTS,
+        velocity=VELOCITY, pseudo_count_jitter=PSEUDO_COUNT_JITTER,
+        position=POSITION, sigma_transition_position=SIGMA_POSITION_TRANSITION
     )
-
-    # Compute pseudo-count matrix
-    alpha_atvv = build_pseudo_count_matrix(
-        actions=actions,
-        observations=observations,
-        timestep=TIMESTEP,
-        velocity=VELOCITY,
-        jitter=PSEUDO_COUNT_JITTER
-    )
-
-    # Compute expected probabilities
-    transition_velocity_atvv = normalize_last_dim(alpha_atvv) # Expected value given Dirichlet distribution parameterised by alpha
-    # Make sure that all probabilities sum to (more or less) one: np.allclose(np.sum(transition_velocity_atvv, axis=-1), 1)
-
-    # Compute position transition matrix
-    transition_position_pvp = build_position_transition_matrix(
-        position=POSITION,
-        velocity=VELOCITY,
-        sigma_transition_position=SIGMA_POSITION_TRANSITION
-    )
-
-    # Generate action plans
-    h = TIMESTEP.size - 1
-    action_plans = np.zeros((h, h), dtype=int) #list(itertools.product(range(n_action), repeat=h))
-    action_plans[:] = np.eye(h)
-
     # Run the baseline
     runs = baseline.run(
         action_plans=action_plans,
@@ -113,7 +75,7 @@ def generative_model():
 
 if __name__ == "__main__":
 
-    generative_model()
+    main()
 
 
 

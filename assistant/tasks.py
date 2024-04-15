@@ -211,12 +211,12 @@ def get_day_index(dt, dates):
     return dates.index(dt.date())
 
 
-def get_timestep(dt):
+def get_timestep(dt, timestep=TIMESTEP, time_zone=TIME_ZONE):
     """
     Get the timestep index for a given datetime
     """
-    timestep_duration = SEC_IN_DAY / N_TIMESTEP
-    start_of_day = datetime.combine(dt, time.min, tzinfo=timezone(TIME_ZONE))
+    timestep_duration = SEC_IN_DAY / timestep.size
+    start_of_day = datetime.combine(dt, time.min, tzinfo=timezone(time_zone))
     diff = (dt - start_of_day).total_seconds()
     timestep = diff // timestep_duration
     return int(timestep)

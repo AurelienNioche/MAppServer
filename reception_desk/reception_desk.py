@@ -4,7 +4,7 @@ import pytz
 from django.db import transaction
 import numpy as np
 import re
-from django.db.models import F, Q
+from django.db.models import F
 
 import assistant.tasks
 from MAppServer.settings import TIME_ZONE, APP_VERSION
