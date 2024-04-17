@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 import uuid
 import pytz
 
-from MAppServer.settings import APP_VERSION, TIME_ZONE
-from user.models import User, Activity, Challenge, Status
+from MAppServer.settings import TIME_ZONE
+from user.models import User, Challenge, Status
 
 
 def generate_uuid():
@@ -18,19 +18,20 @@ def generate_uuid():
 
 @transaction.atomic
 def create_test_user(
-        starting_date,
-        n_day,
-        n_challenge,
-        offer_window,
-        objective,
-        amount,
-        base_chest_amount,
-        username,
-        init_state,
-        experiment_name,
-        first_challenge_offer,
-        challenge_window,
-        challenge_duration):
+        starting_date: str,
+        n_day: int,
+        n_challenge: int,
+        objective: int or float,
+        amount: int or float,
+        base_chest_amount: int or float,
+        username: str,
+        init_state: str,
+        experiment_name:  str,
+        first_challenge_offer: str,
+        offer_window: int or float,
+        challenge_window: int or float,
+        challenge_duration: int or float,
+        challenge_accepted=False):
 
     print("Test user creation")
 
@@ -42,6 +43,10 @@ def create_test_user(
 
     dt_first_challenge_offer = datetime.strptime(first_challenge_offer, "%H:%M")
     dt_first_challenge_offer = pytz.timezone(TIME_ZONE).localize(dt_first_challenge_offer)
+
+    offer_window = timedelta(hours=offer_window)
+    challenge_duration = timedelta(hours=challenge_duration)
+    challenge_window = timedelta(hours=challenge_window)
 
     print("Starting date:", starting_date)
     # ---------------------------------------------------------------
@@ -108,7 +113,9 @@ def create_test_user(
                 objective=objective,
                 amount=amount,
                 android_tag=random_uuid,
-                server_tag=random_uuid)
+                server_tag=random_uuid,
+                accepted=challenge_accepted,
+            )
 
             current_time = dt_latest
 

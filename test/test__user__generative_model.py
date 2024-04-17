@@ -3,7 +3,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import pytz
 import json
 import numpy as np
@@ -16,68 +16,26 @@ from test.user_simulation import websocket_client
 from test.generative_model.core import generative_model
 
 from assistant.tasks import get_timestep
+from assistant_model.action_plan_generation import get_possible_action_plans
+from assistant_model.action_plan_generation import get_challenges
 
+from test.config.config import (
+    TIMESTEP, POSITION, VELOCITY, N_DAY, N_CHALLENGE, OFFER_WINDOW, OBJECTIVE, AMOUNT,
+    BASE_CHEST_AMOUNT, USERNAME, INIT_STATE, EXPERIMENT_NAME, FIRST_CHALLENGE_OFFER,
+    CHALLENGE_WINDOW, CHALLENGE_DURATION, STARTING_DATE, URL, _now, _now_time,
+    USER, DATA_FOLDER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS, PSEUDO_COUNT_JITTER,
+    SIGMA_POSITION_TRANSITION
+)
 
-URL = "ws://127.0.0.1:8080/ws"
-USERNAME = "123test"
-INIT_STATE = "experimentNotStarted"
-# WHen things will start
-FIRST_CHALLENGE_OFFER = "7:30"
-# Define "now" for debug purposes
-NOW_TIME = "7:00"
-_now = datetime.now()
-_now_time = datetime.strptime(NOW_TIME, "%H:%M").time()
-# Starting date of the experiment
-STARTING_DATE = _now.date().strftime("%d/%m/%Y")  # "28/03/2024"
-# Experiment name (can be anything)
-EXPERIMENT_NAME = "not-even-an-alpha-test"
-# Amount of money already in the chest
-BASE_CHEST_AMOUNT = 6
-OBJECTIVE = 10
-# Amount of reward (in pounds) for each challenge completed
-AMOUNT = 0.4
-# Number of days to create challenges for
-N_DAY = 1
-OFFER_WINDOW = timedelta(minutes=15)
-CHALLENGE_WINDOW = timedelta(hours=3)
-CHALLENGE_DURATION = timedelta(hours=1)
-N_CHALLENGE = 3
-# NGROK_URL = "ff87-130-209-252-154.ngrok-free.app"
-# URL = f"wss://{NGROK_URL}/ws",
-
-# ------------------------------------------------------
-
-USER = "11AV"
-DATA_FOLDER = data_path = os.path.dirname(os.path.dirname(__file__)) + "/data"
-N_TIMESTEP = 11
-N_POSITION = 60
-TIMESTEP = np.linspace(0, 1, N_TIMESTEP)
-POSITION = np.linspace(0, 20000, N_POSITION)
-SIGMA_POSITION_TRANSITION = 10.0
-N_VELOCITY = 60
-# velocity = np.concatenate((np.zeros(1), np.geomspace(2, np.max(combined)+1, n_velocity-1)))
-VELOCITY = np.linspace(0, 15000+1, N_VELOCITY)
-PSEUDO_COUNT_JITTER = 1e-3
-
-N_SAMPLES = 1000
-CHILD_MODELS_N_COMPONENTS = 3
-LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
-N_RESTART = 4
-N_EPISODES = 200
+def is_nudged(now, username):
+    u = User.objects.filter(username=username).first()
+    assert u is not None, f"User {username} not found."
+    ch = u.challenge_set.filter(accepted=True, dt_begin__lte=now, dt_end__gte=now)
+    return ch.exists()
 
 
 # def position_to_idx(position):
 #     return np.argmin(np.abs(POSITION - position))
-
-
-def extract_actions(now, username):
-    user = User.objects.filter(username=username).first()
-    # actions = np.zeros((deriv_cum_steps.shape[0], N_TIMESTEP), dtype=int)
-    ch = u.challenge_set.filter(accepted=True, dt_end__lt=now)  # Less than now
-    ch_date = np.asarray([dates.index(ch.dt_begin.date()) for ch in ch])
-    ch_timestep = np.asarray([get_timestep(ch.dt_begin) for ch in ch])
-    for a, t in zip(ch_date, ch_timestep):
-        actions[a, t] = 1
 
 
 class FakeUser(websocket_client.DefaultUser):
@@ -92,7 +50,16 @@ class FakeUser(websocket_client.DefaultUser):
         self.velocity = velocity
         self.pos_idx = np.argmin(np.abs(self.position))  # Something close to 0
         self.v_idx = np.argmin(np.abs(self.velocity))  # Something close to 0
-        self.transition_velocity_atvv, self.transition_position_pvp, self.action_plans = generative_model(
+
+        challenges = get_challenges(
+            time_zone=TIME_ZONE,
+            challenge_window=CHALLENGE_WINDOW,
+            offer_window=OFFER_WINDOW,
+            n_challenges_per_day=N_CHALLENGE,
+        )
+        self.action_plans = get_possible_action_plans(challenges=challenges, timestep=TIMESTEP)
+        self.transition_velocity_atvv, self.transition_position_pvp = generative_model(
+            action_plans=self.action_plans,
             user=USER, data_path=DATA_FOLDER,
             timestep=TIMESTEP, n_samples=N_SAMPLES,
             child_models_n_components=CHILD_MODELS_N_COMPONENTS,
@@ -104,27 +71,11 @@ class FakeUser(websocket_client.DefaultUser):
             date=_now.date(), time=_now_time,
             tzinfo=pytz.timezone(TIME_ZONE))
 
+        self.starting_date = _now.date()
+        self.android_id = 0
+
     def now(self):
         return self._now
-
-    def steps(self):
-        return [
-            {
-                "ts": (self.now() - timedelta(minutes=30)).timestamp()*1000,
-                "step_midnight": 1,
-                "android_id": 0
-            },
-            {
-                "ts": (self.now() - timedelta(minutes=20)).timestamp()*1000,
-                "step_midnight": 2,
-                "android_id": 1
-            },
-            {
-                "ts": (self.now() - timedelta(minutes=10)).timestamp()*1000,
-                "step_midnight": 3,
-                "android_id": 2
-            }
-        ]
 
     def update(self):
         position = self.position
@@ -134,33 +85,47 @@ class FakeUser(websocket_client.DefaultUser):
         transition_position_pvp = self.transition_position_pvp
         pos_idx = self.pos_idx
         v_idx = self.v_idx
+        now = self.now()
+        username = self.username
 
-        t_idx = get_timestep(self.now(), timestep)
+        t_idx = get_timestep(now, timestep)
+        if t_idx >= timestep.size - 1:
+            print("TOO LATE")
+            self.increment_time()
+            steps = []
+            to_return = {
+                "now": self.now().strftime("%d/%m/%Y %H:%M:%S"),
+                "steps": json.dumps(steps),
+            }
+            return to_return
 
-        a = extract_action(now, username)
+        a = int(is_nudged(now=now, username=username))
 
         # Draw new velocity
-        new_v_idx = np.random.choice(
-            np.arange(velocity.size),
-            p=transition_velocity_atvv[a, t_idx, v_idx, :])
+        p = transition_velocity_atvv[a, t_idx, v_idx, :]
+        new_v_idx = np.random.choice(np.arange(velocity.size), p=p)
 
         # Update velocity and position
         v_idx = new_v_idx
+        p = transition_position_pvp[pos_idx, v_idx, :]
         pos_idx = np.random.choice(
             position.size,
-            p=transition_position_pvp[pos_idx, v_idx, :])
+            p=p)
 
         step_midnight = position[pos_idx]
 
         # Update time
-        self._now += timedelta(minutes=24*60/timestep.size)
+        self.increment_time()
+        self.v_idx = v_idx
+        self.pos_idx = pos_idx
 
         steps = [{
-                "ts": (self.now() - timedelta(minutes=20)).timestamp()*1000,
+                "ts": (now - timedelta(minutes=20)).timestamp()*1000,
                 "step_midnight": step_midnight,
-                "android_id": 1
+                "android_id": self.android_id
             }]
-
+        print(f"Android ID {self.android_id} - Day {(self.now().date() - self.starting_date).days} - Timestep {t_idx} -  {step_midnight} steps done.")
+        self.android_id += 1
         to_return = {
             "now": self.now().strftime("%d/%m/%Y %H:%M:%S"),
             "steps": json.dumps(steps),
@@ -168,10 +133,49 @@ class FakeUser(websocket_client.DefaultUser):
 
         return to_return
 
+    def increment_time(self):
+        new_now = self._now + timedelta(hours=1)
+        if new_now > self.now().replace(hour=23, minute=59):
+            difference = self.now() - datetime.combine(self.starting_date, time(), tzinfo=self.now().tzinfo)
+            # print(f"day # {difference.days} - {self.position[self.pos_idx]} steps done.")
+            new_now = new_now.replace(hour=0, minute=0)
+            self.pos_idx = np.argmin(np.abs(self.position))  # Something close to 0
+            self.v_idx = np.argmin(np.abs(self.velocity))
+        self._now = new_now
+
+    def done(self):
+        return (self.now().date() - self.starting_date) > timedelta(days=N_DAY)
+
+
+def extract_actions(
+        username: str,
+        timestep: np.ndarray
+) -> np.ndarray:
+
+    """
+    Extract the actions taken by the assistant
+    """
+    # Get the user
+    u = User.objects.filter(username=username).first()
+    # Get all the challenges for this user
+    all_ch = u.challenge_set.all()
+    # Get the unique dates for this user (by looking at the beginning of the challenges)
+    dates = sorted(np.unique([ch.dt_begin.date() for ch in all_ch]))
+    # Initialize the actions array
+    actions = np.zeros((len(dates), timestep.size), dtype=int)
+    # Get the date and timestep for each challenge
+    ch_date = np.asarray([dates.index(ch.dt_begin.date()) for ch in all_ch])
+    ch_timestep = np.asarray([get_timestep(ch.dt_begin, timestep=timestep) for ch in all_ch])
+    # Set the actions
+    for date, t in zip(ch_date, ch_timestep):
+        actions[date, t] = 1
+    return actions
+
 
 def main():
 
     creation.create_test_user(
+        challenge_accepted=True,
         starting_date=STARTING_DATE,
         n_day=N_DAY,
         n_challenge=N_CHALLENGE,
@@ -188,6 +192,11 @@ def main():
     )
 
     websocket_client.run_bot(url=URL, user=FakeUser())
+
+    actions_taken = extract_actions(
+        username=USERNAME, timestep=TIMESTEP)
+    for i, actions in enumerate(actions_taken):
+        print(f"Day #{i}:", actions)
 
 
 if __name__ == "__main__":

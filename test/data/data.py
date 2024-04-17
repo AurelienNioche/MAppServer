@@ -4,8 +4,11 @@ from datetime import datetime, time
 from glob import glob
 
 
-def load_data(user, data_path):
-
+def load_data(
+        user: str,
+        data_path: str
+) -> list:
+    print("USER", user)
     file = glob(f"{data_path}/dump_latest/{user}_activity*.csv")[0]
 
     df = pd.read_csv(file, index_col=0)

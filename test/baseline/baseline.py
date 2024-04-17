@@ -14,7 +14,7 @@ def run(
 
     runs = []
 
-    for policy in action_plans:
+    for i_pol, policy in enumerate(action_plans):
 
         hist_pos = np.zeros((n_restart, timestep.size - 1))
         hist_vel = np.zeros_like(hist_pos)
@@ -39,6 +39,6 @@ def run(
                 hist_pos[sample, t_idx] = position[pos_idx]
                 hist_vel[sample, t_idx] = velocity[v_idx]
 
-        policy_name = f"{list(policy).index(1)}"
+        policy_name = f"{i_pol}"
         runs.append({"policy": policy_name, "position": hist_pos, "velocity": hist_vel})
     return runs

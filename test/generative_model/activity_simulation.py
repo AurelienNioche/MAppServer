@@ -12,10 +12,16 @@ def generate_nudge_effect(timestep, n_samples):
     return effect
 
 
-def generate_observations(activity_samples, nudge_effect, timestep) -> (np.ndarray, np.ndarray):
+def generate_observations(
+        activity_samples,
+        nudge_effect,
+        action_plans) -> (np.ndarray, np.ndarray):
 
-    actions = np.random.choice([0, 1], size=(activity_samples.shape[0], timestep.size-1))
+    idx = np.random.randint(action_plans.shape[0], size=activity_samples.shape[0])
+    actions = action_plans[idx]
     observations = activity_samples.copy()
     observations[:, 1:] += actions * nudge_effect[:, 1:]
     observations[observations < 0] = 0  # No negative steps
+    print(observations.shape)
+    print(actions.shape)
     return observations, actions

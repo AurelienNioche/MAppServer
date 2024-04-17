@@ -20,7 +20,8 @@ from test.activity.activity import (
 
 def generative_model(
         user, data_path, timestep, n_samples, child_models_n_components,
-        velocity, pseudo_count_jitter, position, sigma_transition_position
+        velocity, pseudo_count_jitter, position, sigma_transition_position,
+        action_plans
 ):
 
     # Load data
@@ -35,16 +36,16 @@ def generative_model(
 
     nudge_effect = generate_nudge_effect(timestep=timestep, n_samples=n_samples)
 
-    observations, actions = generate_observations(
+    observed_activity, observed_action_plans = generate_observations(
         activity_samples=activity_samples,
         nudge_effect=nudge_effect,
-        timestep=timestep
+        action_plans=action_plans,
     )
 
     # Compute pseudo-count matrix
     alpha_atvv = build_pseudo_count_matrix(
-        actions=actions,
-        observations=observations,
+        actions=observed_action_plans,
+        observations=observed_activity,
         timestep=timestep,
         velocity=velocity,
         jitter=pseudo_count_jitter
@@ -61,9 +62,4 @@ def generative_model(
         sigma_transition_position=sigma_transition_position
     )
 
-    # Generate action plans
-    h = timestep.size - 1
-    action_plans = np.zeros((h, h), dtype=int) #list(itertools.product(range(n_action), repeat=h))
-    action_plans[:] = np.eye(h)
-
-    return transition_velocity_atvv, transition_position_pvp, action_plans
+    return transition_velocity_atvv, transition_position_pvp

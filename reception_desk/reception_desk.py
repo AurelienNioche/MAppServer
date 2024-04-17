@@ -132,18 +132,18 @@ def record_activity(u, activities_json):
                 n_already_existing_with_same_id += 1
                 continue
 
-            dt = a["dt"]
-            if (
-                u.activity_set.filter(
-                    dt__day=dt.day,
-                    dt__month=dt.month,
-                    dt__year=dt.year,
-                    step_midnight=a["step_midnight"],
-                ).first()
-                is not None
-            ):
-                n_already_existing_with_same_number_same_day += 1
-                continue
+            # dt = a["dt"]
+            # if (
+            #     u.activity_set.filter(
+            #         dt__day=dt.day,
+            #         dt__month=dt.month,
+            #         dt__year=dt.year,
+            #         step_midnight=a["step_midnight"],
+            #     ).first()
+            #     is not None
+            # ):
+            #     n_already_existing_with_same_number_same_day += 1
+            #     continue
 
             Activity.objects.create(user=u, **a)
             n_added += 1

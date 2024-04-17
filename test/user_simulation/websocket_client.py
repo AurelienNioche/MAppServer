@@ -1,5 +1,6 @@
 import json
 import websocket
+import traceback
 
 import os
 
@@ -94,7 +95,9 @@ class Bot(websocket.WebSocketApp):
 
     @staticmethod
     def on_error(ws, error):
-        print(f"I got error: {error}")
+        print("I encountered an error.")
+        print(traceback.print_exc())
+        raise Exception(f"I encountered an error: {error}")
 
     @staticmethod
     def on_close(ws, close_status_code, close_msg):
@@ -123,7 +126,7 @@ class Bot(websocket.WebSocketApp):
         self.send_message(message)
 
     def after_login(self, msg):
-        print("After login: giving a fake update")
+        print("After login: switch to update")
         assert msg["ok"]
         # Give a fake activity update
         self.update()
