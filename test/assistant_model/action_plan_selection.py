@@ -23,10 +23,8 @@ def select_action_plan(
     Select the best action to take
     """
 
-    h = action_plans.shape[1]
-    # print("h", h)
-
-    n_action_plan = len(action_plans)
+    # Get the dimensions of the action plans
+    n_action_plan, h = action_plans.shape
 
     # Initialize action plan values
     pragmatic = np.zeros(n_action_plan)
@@ -72,10 +70,11 @@ def select_action_plan(
             # For a justification of the epistemic value for state, see p 137
             # The second term is 0 because the entropy of the likelihood matrices is 0
             # Because the likelihood is trivial, Q(o) = Q(s)
-            # v_state_p = - qp @ np.log(qp + 1e-16) # ---> Add or remove?
-            # v_state_v = - qv @ np.log(qv + 1e-16) # ---> Add or remove?
+            # v_state_p = - qp @ np.log(qp + 1e-16)
+            # v_state_v = - qv @ np.log(qv + 1e-16)
             # v_state_c = - 0   # Context is known and perfectly predictable in this case
 
+            # A possibility is to consider only the last timestep
             # if h_idx == h-1:
             epistemic[ap_index] += v_model  # + v_state_v  # + v_state_p  # + v_model
 

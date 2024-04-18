@@ -33,8 +33,9 @@ def create_test_user(
         challenge_duration: int or float,
         challenge_accepted=False):
 
+    print("-" * 100)
     print("Test user creation")
-
+    print("-" * 100)
     # --------------------------------------------------------------
     # Deal with dates and times
 
@@ -122,7 +123,9 @@ def create_test_user(
         current_date += timedelta(days=1)
 
     print(f"Challenges successfully created for user {u.username}.")
-    print(f"Last challenge ends at: {dt_end}.")
-    print("-" * 20)
+    # print(f"Last challenge ends at: {dt_end}.")
+    print("-" * 100)
     print("Test user creation completed successfully.")
+    print("-" * 100)
+    return u
 

@@ -4,18 +4,17 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 from datetime import datetime, timedelta, time
-import pytz
+from pytz import timezone as tz
 import json
 import numpy as np
-from scipy.special import softmax
 
 from MAppServer.settings import TIME_ZONE
 from user.models import User
 from test.user_simulation import creation
 from test.user_simulation import websocket_client
 from test.generative_model.core import generative_model
+from test.activity.activity import get_timestep, is_nudged, extract_actions
 
-from assistant.tasks import get_timestep
 from assistant_model.action_plan_generation import get_possible_action_plans
 from assistant_model.action_plan_generation import get_challenges
 
@@ -26,16 +25,6 @@ from test.config.config import (
     USER, DATA_FOLDER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS, PSEUDO_COUNT_JITTER,
     SIGMA_POSITION_TRANSITION
 )
-
-def is_nudged(now, username):
-    u = User.objects.filter(username=username).first()
-    assert u is not None, f"User {username} not found."
-    ch = u.challenge_set.filter(accepted=True, dt_begin__lte=now, dt_end__gte=now)
-    return ch.exists()
-
-
-# def position_to_idx(position):
-#     return np.argmin(np.abs(POSITION - position))
 
 
 class FakeUser(websocket_client.DefaultUser):
@@ -69,7 +58,7 @@ class FakeUser(websocket_client.DefaultUser):
 
         self._now = datetime.combine(
             date=_now.date(), time=_now_time,
-            tzinfo=pytz.timezone(TIME_ZONE))
+            tzinfo=tz(TIME_ZONE))
 
         self.starting_date = _now.date()
         self.android_id = 0
@@ -90,7 +79,6 @@ class FakeUser(websocket_client.DefaultUser):
 
         t_idx = get_timestep(now, timestep)
         if t_idx >= timestep.size - 1:
-            print("TOO LATE")
             self.increment_time()
             steps = []
             to_return = {
@@ -141,40 +129,17 @@ class FakeUser(websocket_client.DefaultUser):
             new_now = new_now.replace(hour=0, minute=0)
             self.pos_idx = np.argmin(np.abs(self.position))  # Something close to 0
             self.v_idx = np.argmin(np.abs(self.velocity))
+            print("-" * 100)
         self._now = new_now
 
     def done(self):
-        return (self.now().date() - self.starting_date) > timedelta(days=N_DAY)
+        return (self.now().date() - self.starting_date) >= timedelta(days=N_DAY)
 
-
-def extract_actions(
-        username: str,
-        timestep: np.ndarray
-) -> np.ndarray:
-
-    """
-    Extract the actions taken by the assistant
-    """
-    # Get the user
-    u = User.objects.filter(username=username).first()
-    # Get all the challenges for this user
-    all_ch = u.challenge_set.all()
-    # Get the unique dates for this user (by looking at the beginning of the challenges)
-    dates = sorted(np.unique([ch.dt_begin.date() for ch in all_ch]))
-    # Initialize the actions array
-    actions = np.zeros((len(dates), timestep.size), dtype=int)
-    # Get the date and timestep for each challenge
-    ch_date = np.asarray([dates.index(ch.dt_begin.date()) for ch in all_ch])
-    ch_timestep = np.asarray([get_timestep(ch.dt_begin, timestep=timestep) for ch in all_ch])
-    # Set the actions
-    for date, t in zip(ch_date, ch_timestep):
-        actions[date, t] = 1
-    return actions
 
 
 def main():
 
-    creation.create_test_user(
+    u = creation.create_test_user(
         challenge_accepted=True,
         starting_date=STARTING_DATE,
         n_day=N_DAY,
@@ -193,10 +158,15 @@ def main():
 
     websocket_client.run_bot(url=URL, user=FakeUser())
 
+    print("-" * 100)
+
     actions_taken = extract_actions(
-        username=USERNAME, timestep=TIMESTEP)
+        u=u, timestep=TIMESTEP)
     for i, actions in enumerate(actions_taken):
         print(f"Day #{i}:", actions)
+
+    for c in User.objects.filter(username=USERNAME).first().challenge_set.order_by("dt_begin"):
+        print(c.dt_begin.astimezone(tz(TIME_ZONE)))
 
 
 if __name__ == "__main__":

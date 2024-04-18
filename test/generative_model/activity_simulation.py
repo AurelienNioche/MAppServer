@@ -1,5 +1,4 @@
 import numpy as np
-
 from . helpers import peaked_function
 
 
@@ -20,8 +19,9 @@ def generate_observations(
     idx = np.random.randint(action_plans.shape[0], size=activity_samples.shape[0])
     actions = action_plans[idx]
     observations = activity_samples.copy()
+    # TODO: Check if this is correct
     observations[:, 1:] += actions * nudge_effect[:, 1:]
     observations[observations < 0] = 0  # No negative steps
-    print(observations.shape)
-    print(actions.shape)
+    # print(observations.shape)  N
+    # print(actions.shape)       N-1
     return observations, actions

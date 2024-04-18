@@ -1,25 +1,17 @@
-import json
-import websocket
 import traceback
-
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
-from django.db import transaction
 
 application = get_wsgi_application()
-
-from MAppServer.settings import TIME_ZONE
 
 import json
 import websocket
 from datetime import datetime, timedelta
-import uuid
-import pytz
 
 from MAppServer.settings import APP_VERSION
-from user.models import User, Activity, Challenge, Status
+from user.models import User
 
 
 class DefaultUser:
@@ -87,7 +79,7 @@ class Bot(websocket.WebSocketApp):
 
     @staticmethod
     def on_message(ws, json_string):
-        print(f"I received: {json_string}")
+        # print(f"I received: {json_string}")
         msg = json.loads(json_string)
         subject = msg["subject"]
         f = getattr(ws, f"after_{subject}")
@@ -101,19 +93,19 @@ class Bot(websocket.WebSocketApp):
 
     @staticmethod
     def on_close(ws, close_status_code, close_msg):
-        print(f"I'm closing.")
+        # print(f"I'm closing.")
         if close_status_code or close_msg:
             print(f"Close status code: {close_status_code}")
             print(f"Close message: {close_msg}")
 
     @staticmethod
     def on_open(ws):
-        print("I'm open.")
+        # print("I'm open.")
         ws.login()
 
     def send_message(self, message):
         string_msg = json.dumps(message, indent=4)
-        print(f"I'm sending: {string_msg}")
+        # print(f"I'm sending: {string_msg}")
         self.send(string_msg)
 
     def login(self):
@@ -126,7 +118,7 @@ class Bot(websocket.WebSocketApp):
         self.send_message(message)
 
     def after_login(self, msg):
-        print("After login: switch to update")
+        # print("After login: switch to update")
         assert msg["ok"]
         # Give a fake activity update
         self.update()
@@ -148,15 +140,15 @@ class Bot(websocket.WebSocketApp):
         self.send_message(message)
 
     def after_update(self, msg):
-        print("Update done!")
+        # print("Update done!")
         if self.user.done():
-            print("Test successful!")
+            # print("Test successful!")
             self.close()
         else:
             self.update()
 
 
 def run_bot(url="ws://127.0.0.1:8080/ws", user=None, username=None):
-    websocket.enableTrace(True)
+    websocket.enableTrace(False)
     bot = Bot(url=url, user=user, username=username)
     bot.run_forever()

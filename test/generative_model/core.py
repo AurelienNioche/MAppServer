@@ -1,16 +1,8 @@
-import numpy as np
-import os
-from scipy.special import softmax
-
 from .activity_simulation import generate_nudge_effect, generate_observations
 from .fit import fit_model
 from .sample import sample
 
 from test.data import data
-
-from test.plot import plot
-
-from test.baseline import baseline
 
 from test.activity.activity import (
     build_pseudo_count_matrix, compute_deriv_cum_steps,
@@ -45,7 +37,7 @@ def generative_model(
     # Compute pseudo-count matrix
     alpha_atvv = build_pseudo_count_matrix(
         actions=observed_action_plans,
-        observations=observed_activity,
+        activity=observed_activity,
         timestep=timestep,
         velocity=velocity,
         jitter=pseudo_count_jitter
