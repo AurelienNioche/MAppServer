@@ -3,6 +3,9 @@ from datetime import datetime, time, timedelta
 from pytz import timezone
 import itertools
 
+from user.models import User
+from test.activity.activity import extract_actions
+
 SEC_IN_DAY = 86400
 
 
@@ -18,12 +21,13 @@ def get_timestep(dt, timestep):
 
 
 def get_challenges(time_zone, challenge_window, offer_window, n_challenges_per_day,
-                   start_time="7:00"):
+                   start_time):
 
     class Challenge:
-        def __init__(self, dt_earliest=None, dt_latest=None):
+        def __init__(self, dt_earliest, dt_latest):
             self.dt_earliest = dt_earliest
             self.dt_latest = dt_latest
+            self.dt_offer_begin = dt_earliest - timedelta(hours=offer_window)
 
     # Start time
     start_time = datetime.strptime(start_time, '%H:%M')
@@ -39,24 +43,39 @@ def get_challenges(time_zone, challenge_window, offer_window, n_challenges_per_d
     return challenges
 
 
-def get_possible_action_plans(challenges, timestep) -> np.ndarray:
+def get_possible_action_plans(
+        challenges: list,
+        timestep: np.ndarray,
+        now: datetime = None,
+        u: User = None
+) -> np.ndarray or tuple:
 
     h = timestep.size - 1
 
     strategies = []
     related_timesteps = []
 
-    # begin_of_day = local(challenges.first().dt_earliest).replace(hour=0, minute=0, second=0, microsecond=0)
-    # delta_t = timedelta(seconds=SEC_IN_DAY/N_TIMESTEP)
+    t_idx = None
+    last_challenge_t_idx = None
+    action_taken = None
+    if u is not None:
+        t_idx = get_timestep(now, timestep=timestep)
+        # print("t_idx", t_idx)
+        action_taken = extract_actions(u=u, timestep=timestep, now=now)
+        last_challenge_t_idx = 0  # Every future will be compatible
 
     for ch in challenges:
         # print("Challenge:", local(ch.dt_earliest), local(ch.dt_latest))
-        ch_earliest_t_idx = get_timestep(ch.dt_earliest, timestep)
-        ch_latest_t_idx = get_timestep(ch.dt_latest, timestep)
+        ch_latest_t_idx = get_timestep(ch.dt_latest, timestep=timestep)
+        ch_offer_t_idx = get_timestep(ch.dt_offer_begin, timestep=timestep)
+
+        if now is not None and ch_offer_t_idx <= t_idx:
+            last_challenge_t_idx = ch_latest_t_idx
+            continue
+
+        ch_earliest_t_idx = get_timestep(ch.dt_earliest, timestep=timestep)
+
         duration_in_timestep = ch_latest_t_idx - ch_earliest_t_idx
-        # print(timedelta(seconds=duration_in_timestep*SEC_IN_DAY/N_TIMESTEP))
-        # print("duration in timestep", duration_in_timestep)
-        # print("duration in time", ch.dt_latest - ch.dt_earliest)
         timesteps = np.arange(ch_earliest_t_idx, ch_latest_t_idx)
         strategy = np.eye(duration_in_timestep, dtype=int)
         strategies.append(strategy)
@@ -69,6 +88,18 @@ def get_possible_action_plans(challenges, timestep) -> np.ndarray:
             action_plan[related_timesteps[i]] = challenge_part
 
         action_plans.append(action_plan)
+    action_plans = np.asarray(action_plans, dtype=int)
 
-    # print(f"action plan ({len(action_plan)})", action_plan)
-    return np.asarray(action_plans, dtype=int)
+    if now is None:
+        return action_plans
+    else:
+        # Changing the past is not a possibility
+        # Select only the action plans which are compatible with the past
+        mask = np.all(
+            action_plans[:, :last_challenge_t_idx]
+            == action_taken[:last_challenge_t_idx],
+            axis=1)
+        action_plans = action_plans[mask]
+        # Take only the future
+        future_action_plans = action_plans[:, t_idx:]
+        return action_plans, future_action_plans

@@ -22,14 +22,14 @@ class WebSocketConsumer(WebsocketConsumer):
         try:
             text_data_json = json.loads(text)
         except:
-            print("Received:", text)
-            print("Does not appear to be JSON")
+            print("I received content that appears not to be JSON:")
+            print(text)
             return
-        print("Received:", json.dumps(text_data_json, indent=4))
+        # print("Received:", json.dumps(text_data_json, indent=4))
         # message = text_data_json['message']
         response = treat_request(text_data_json)
         resp = json.dumps(response, indent=4)
-        print("Send:", resp)
+        # print("Send:", resp)
         if bytes_data is not None:
             self.send(bytes_data=resp.encode())
         else:

@@ -168,7 +168,7 @@ def record_interactions(u, interactions_json):
     interactions = read_android_json(interactions_json)
     with transaction.atomic():
         for itr in interactions:
-            print(f"adding new interaction: {itr}")
+            # print(f"adding new interaction: {itr}")
 
             if (
                 u.interaction_set.filter(android_id=itr["android_id"]).first()
@@ -238,7 +238,7 @@ class RequestHandler:
         # Extract the data
         username = r["username"]
         # Check the user
-        print(f"User {r['username']} is trying to connect...")
+        # print(f"User {r['username']} is trying to connect...")
         u = User.objects.filter(username=username).first()
         ok = u is not None
         if not ok:

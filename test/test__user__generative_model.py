@@ -82,7 +82,7 @@ class FakeUser(websocket_client.DefaultUser):
             self.increment_time()
             steps = []
             to_return = {
-                "now": self.now().strftime("%d/%m/%Y %H:%M:%S"),
+                "now": now.strftime("%d/%m/%Y %H:%M:%S"),
                 "steps": json.dumps(steps),
             }
             return to_return
@@ -108,11 +108,11 @@ class FakeUser(websocket_client.DefaultUser):
         self.pos_idx = pos_idx
 
         steps = [{
-                "ts": (now - timedelta(minutes=20)).timestamp()*1000,
+                "ts": now.timestamp()*1000,
                 "step_midnight": step_midnight,
                 "android_id": self.android_id
             }]
-        print(f"Android ID {self.android_id} - Day {(self.now().date() - self.starting_date).days} - Timestep {t_idx} -  {step_midnight} steps done.")
+        # print(f"Android ID {self.android_id} - Day {(self.now().date() - self.starting_date).days} - Timestep {t_idx} -  {step_midnight} steps done.")
         self.android_id += 1
         to_return = {
             "now": self.now().strftime("%d/%m/%Y %H:%M:%S"),
@@ -129,12 +129,11 @@ class FakeUser(websocket_client.DefaultUser):
             new_now = new_now.replace(hour=0, minute=0)
             self.pos_idx = np.argmin(np.abs(self.position))  # Something close to 0
             self.v_idx = np.argmin(np.abs(self.velocity))
-            print("-" * 100)
+            # print("-" * 100)
         self._now = new_now
 
     def done(self):
         return (self.now().date() - self.starting_date) >= timedelta(days=N_DAY)
-
 
 
 def main():

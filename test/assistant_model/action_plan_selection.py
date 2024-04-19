@@ -89,7 +89,7 @@ def select_action_plan(
     # print("epistemic", epistemic)
     if np.isnan(pragmatic).all() and np.isnan(epistemic).all():
         print("All values are nan")
-        return np.random.choice(range(n_action_plan))
+        return np.random.randint(n_action_plan), pragmatic, epistemic
 
     if not np.isnan(pragmatic).all() and not np.isnan(epistemic).all():
         efe = gamma * epistemic + pragmatic

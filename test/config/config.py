@@ -28,7 +28,9 @@ N_CHALLENGE = 3
 # NGROK_URL = "ff87-130-209-252-154.ngrok-free.app"
 # URL = f"wss://{NGROK_URL}/ws",
 # Number of days to create challenges for
-N_DAY = 2
+N_DAY = 100
+
+assert N_DAY > 1, "N_DAY must be greater than 1"
 
 # ------------------------------------------------------
 

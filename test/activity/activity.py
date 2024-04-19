@@ -140,7 +140,7 @@ def is_nudged(now, username):
 def extract_step_events(
         step_counts: pd.Series or np.ndarray,
         datetimes: pd.Series,
-        remove_empty_days: bool = True):
+        remove_empty_days: bool = False):
 
     if isinstance(step_counts, pd.Series):
         step_counts = step_counts.to_numpy()
@@ -158,11 +158,13 @@ def extract_step_events(
     all_timestamp /= SECONDS_IN_DAY
     # List of step events for each day, the event itself being the timestamp of the step
     step_events = [[] for _ in range(uniq_days.size)]
+    # print("step_events", step_events)
     # Loop over the unique days
     for idx_day, day in enumerate(uniq_days):
+        # print("idx_day", idx_day, "day", day)
         is_day = days == day
         obs_timestamp, obs_pos = all_timestamp[is_day], all_pos[is_day]
-
+        # print("obs_timestamp", obs_timestamp, "obs_pos", obs_pos)
         # Sort the data by timestamp
         idx = np.argsort(obs_timestamp)
         obs_timestamp, obs_pos = obs_timestamp[idx], obs_pos[idx]
@@ -174,7 +176,10 @@ def extract_step_events(
             # TODO: In the future, we probably want to spread that
             #  over a period assuming something like 6000 steps per hour
             step_events[idx_day] += [ts for _ in range(dif)]
-
+            # print("ts", ts, "dif", dif)
+    # print("step_events after loop", step_events)
+    # if len(all_timestamp) == 3:
+    #     exit(0)
     # Remove empty days
     if remove_empty_days:
         step_events = [i for i in step_events if len(i)]
@@ -184,22 +189,29 @@ def extract_step_events(
 
 def extract_actions(
         u: User,
-        timestep: np.ndarray
+        timestep: np.ndarray,
+        now: datetime = None
 ) -> np.ndarray:
 
     """
     Extract the actions taken by the assistant
     """
     # Get all the challenges for this user
-    all_ch = u.challenge_set.all()
+    if now is None:
+        all_ch = u.challenge_set.all()
+    else:
+        all_ch = u.challenge_set.filter(dt_begin__date=now.date())
     # Get the unique dates for this user (by looking at the beginning of the challenges)
     dates = sorted(np.unique([ch.dt_begin.date() for ch in all_ch]))
     # Initialize the actions array
-    actions = np.zeros((len(dates), timestep.size), dtype=int)
+    actions = np.zeros((len(dates), timestep.size - 1), dtype=int)
     # Get the date and timestep for each challenge
     ch_date = np.asarray([dates.index(ch.dt_begin.date()) for ch in all_ch])
     ch_timestep = np.asarray([get_timestep(ch.dt_begin, timestep=timestep) for ch in all_ch])
     # Set the actions
     for date, t in zip(ch_date, ch_timestep):
         actions[date, t] = 1
+
+    if actions.shape[0] == 1:
+        actions = actions.flatten()
     return actions

@@ -1,39 +1,46 @@
 import numpy as np
 import os
 from scipy.special import softmax
-from test.generative_model.core import generative_model
 
+from MAppServer.settings import TIME_ZONE
+
+from test.generative_model.core import generative_model
 from test.plot import plot
 from test.baseline import baseline
 from test.assistant_model.action_plan_generation import get_possible_action_plans, get_challenges
 from test.assistant_model.run import test_assistant_model
+from test.config.config import (
+    USER, DATA_FOLDER, TIMESTEP, POSITION, SIGMA_POSITION_TRANSITION,
+    VELOCITY, PSEUDO_COUNT_JITTER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS, LOG_PRIOR,
+    N_RESTART, N_EPISODES, CHALLENGE_WINDOW, OFFER_WINDOW, N_CHALLENGE, FIRST_CHALLENGE_OFFER
+)
 
-USER = "11AV"
-DATA_FOLDER = data_path = os.path.dirname(os.path.dirname(__file__)) + "/data"
-N_TIMESTEP = 24
-N_POSITION = 50
-TIMESTEP = np.linspace(0, 1, N_TIMESTEP)
-POSITION = np.linspace(0, 20000, N_POSITION)
-SIGMA_POSITION_TRANSITION = 10.0
-N_VELOCITY = 30
-# velocity = np.concatenate((np.zeros(1), np.geomspace(2, np.max(combined)+1, n_velocity-1)))
-VELOCITY = np.linspace(0, 12000, N_VELOCITY)
-PSEUDO_COUNT_JITTER = 1e-3
-
-N_SAMPLES = 1000
-CHILD_MODELS_N_COMPONENTS = 3
-LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
-N_RESTART = 4
-N_EPISODES = 200
-
-SEC_IN_DAY = 86400
-
-TIME_ZONE = "Europe/London"
-
-N_CHALLENGES_PER_DAY = 3
-CHALLENGE_WINDOW = 2
-OFFER_WINDOW = 1
-START_TIME = "7:00"
+# USER = "11AV"
+# DATA_FOLDER = data_path = os.path.dirname(os.path.dirname(__file__)) + "/data"
+# N_TIMESTEP = 24
+# N_POSITION = 50
+# TIMESTEP = np.linspace(0, 1, N_TIMESTEP)
+# POSITION = np.linspace(0, 20000, N_POSITION)
+# SIGMA_POSITION_TRANSITION = 10.0
+# N_VELOCITY = 30
+# # velocity = np.concatenate((np.zeros(1), np.geomspace(2, np.max(combined)+1, n_velocity-1)))
+# VELOCITY = np.linspace(0, 12000, N_VELOCITY)
+# PSEUDO_COUNT_JITTER = 1e-3
+#
+# N_SAMPLES = 1000
+# CHILD_MODELS_N_COMPONENTS = 3
+# LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
+# N_RESTART = 4
+# N_EPISODES = 200
+#
+# SEC_IN_DAY = 86400
+#
+# TIME_ZONE = "Europe/London"
+#
+# N_CHALLENGES_PER_DAY = 3
+# CHALLENGE_WINDOW = 2
+# OFFER_WINDOW = 1
+# START_TIME = "7:00"
 
 #
 # def get_simple_action_plans():
@@ -49,8 +56,8 @@ def main():
         time_zone=TIME_ZONE,
         challenge_window=CHALLENGE_WINDOW,
         offer_window=OFFER_WINDOW,
-        n_challenges_per_day=N_CHALLENGES_PER_DAY,
-        start_time=START_TIME
+        n_challenges_per_day=N_CHALLENGE,
+        start_time=FIRST_CHALLENGE_OFFER
     )
 
     action_plans = get_possible_action_plans(challenges=challenges, timestep=TIMESTEP)
