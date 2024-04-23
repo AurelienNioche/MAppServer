@@ -5,7 +5,11 @@ from sklearn.mixture import GaussianMixture
 from . transformers import StepTransformer, ParamTransformer
 
 
-def fit_child_model(step_events, n_components=3) -> (list[GaussianMixture], list[float]):
+def fit_child_model(
+        step_events,
+        n_components,
+        random_state
+) -> (list[GaussianMixture], list[float]):
 
     n_days = len(step_events)
 
@@ -35,7 +39,7 @@ def fit_child_model(step_events, n_components=3) -> (list[GaussianMixture], list
         x = transformed_all_steps[day].reshape(-1, 1)
 
         # Fit the model
-        gmm = GaussianMixture(n_components=n_components, random_state=123)
+        gmm = GaussianMixture(n_components=n_components, random_state=random_state)
         gmm.fit(x)
 
         # Store the model
@@ -50,7 +54,8 @@ def fit_child_model(step_events, n_components=3) -> (list[GaussianMixture], list
 
 
 def fit_parent_model(
-        child_models_features
+        child_models_features,
+        random_state
 ) -> (np.ndarray, np.ndarray, np.ndarray):
     """
     Fit the parent model using the features of the child models.
@@ -64,7 +69,10 @@ def fit_parent_model(
 
     n_components_range_beta = range(1, 18)
 
-    all_beta_gmm = [GaussianMixture(n_components=n_components).fit(x) for n_components in n_components_range_beta]
+    all_beta_gmm = [GaussianMixture(
+        n_components=n_components,
+        random_state=random_state
+    ).fit(x) for n_components in n_components_range_beta]
     all_beta_scores = [_gmm.bic(x) for _gmm in all_beta_gmm]
 
     # Choose the best model
@@ -73,18 +81,23 @@ def fit_parent_model(
     return best_beta_gmm, features_transformer
 
 
-def fit_model(step_events, child_models_n_components=3) -> (np.ndarray, list):
-    """
-    Fit the child and parent models.
-    """
-
+def fit_model(
+        step_events,
+        child_models_n_components,
+        random_state
+) -> (np.ndarray, dict[str, object]):
+    """Fit the child and parent models."""
     # Fit the child models
     child_models, child_models_features, step_transformer, params_transformer = (
-        fit_child_model(step_events, child_models_n_components))
-
+        fit_child_model(
+            step_events=step_events,
+            n_components=child_models_n_components,
+            random_state=random_state))
     # Fit the parent model
-    parent_model, features_transformer = fit_parent_model(child_models_features)
-
+    parent_model, features_transformer = fit_parent_model(
+        child_models_features=child_models_features,
+        random_state=random_state
+    )
     return parent_model, {
         "step_transformer": step_transformer,
         "params_transformer": params_transformer,

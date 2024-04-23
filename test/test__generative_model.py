@@ -1,6 +1,4 @@
 import numpy as np
-import os
-from scipy.special import softmax
 
 from MAppServer.settings import TIME_ZONE
 
@@ -11,43 +9,12 @@ from test.assistant_model.action_plan_generation import get_possible_action_plan
 from test.assistant_model.run import test_assistant_model
 from test.config.config import (
     USER, DATA_FOLDER, TIMESTEP, POSITION, SIGMA_POSITION_TRANSITION,
-    VELOCITY, PSEUDO_COUNT_JITTER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS, LOG_PRIOR,
-    N_RESTART, N_EPISODES, CHALLENGE_WINDOW, OFFER_WINDOW, N_CHALLENGE, FIRST_CHALLENGE_OFFER
+    VELOCITY, GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
+    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
+    N_SAMPLES, CHILD_MODELS_N_COMPONENTS, LOG_PRIOR,
+    N_RESTART, N_EPISODES, CHALLENGE_WINDOW, OFFER_WINDOW, N_CHALLENGE, FIRST_CHALLENGE_OFFER,
+    SEED_GENERATIVE_MODEL, SEED_RUN, GAMMA
 )
-
-# USER = "11AV"
-# DATA_FOLDER = data_path = os.path.dirname(os.path.dirname(__file__)) + "/data"
-# N_TIMESTEP = 24
-# N_POSITION = 50
-# TIMESTEP = np.linspace(0, 1, N_TIMESTEP)
-# POSITION = np.linspace(0, 20000, N_POSITION)
-# SIGMA_POSITION_TRANSITION = 10.0
-# N_VELOCITY = 30
-# # velocity = np.concatenate((np.zeros(1), np.geomspace(2, np.max(combined)+1, n_velocity-1)))
-# VELOCITY = np.linspace(0, 12000, N_VELOCITY)
-# PSEUDO_COUNT_JITTER = 1e-3
-#
-# N_SAMPLES = 1000
-# CHILD_MODELS_N_COMPONENTS = 3
-# LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
-# N_RESTART = 4
-# N_EPISODES = 200
-#
-# SEC_IN_DAY = 86400
-#
-# TIME_ZONE = "Europe/London"
-#
-# N_CHALLENGES_PER_DAY = 3
-# CHALLENGE_WINDOW = 2
-# OFFER_WINDOW = 1
-# START_TIME = "7:00"
-
-#
-# def get_simple_action_plans():
-#     """
-#     Everything is possible.
-#     """
-#     return np.eye(N_TIMESTEP-1, dtype=int)
 
 
 def main():
@@ -61,24 +28,39 @@ def main():
     )
 
     action_plans = get_possible_action_plans(challenges=challenges, timestep=TIMESTEP)
+    # print(f"Generated {len(action_plans)} action plans")
 
     transition_velocity_atvv, transition_position_pvp = generative_model(
         action_plans=action_plans,
         user=USER, data_path=DATA_FOLDER,
         timestep=TIMESTEP, n_samples=N_SAMPLES,
         child_models_n_components=CHILD_MODELS_N_COMPONENTS,
-        velocity=VELOCITY, pseudo_count_jitter=PSEUDO_COUNT_JITTER,
-        position=POSITION, sigma_transition_position=SIGMA_POSITION_TRANSITION
+        velocity=VELOCITY, pseudo_count_jitter=GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
+        position=POSITION, sigma_transition_position=SIGMA_POSITION_TRANSITION,
+        seed=SEED_GENERATIVE_MODEL
     )
+    # np.save("action_plans.npy", action_plans)
+    # np.save("timestep.npy", TIMESTEP)
+    # np.save("velocity.npy", VELOCITY)
+    # np.save("position.npy", POSITION)
+    # np.save("transition_velocity_atvv.npy", transition_velocity_atvv)
+    # np.save("transition_position_pvp.npy", transition_position_pvp)
+
     # Run the baseline
     runs = baseline.run(
         action_plans=action_plans,
         transition_velocity_atvv=transition_velocity_atvv,
         transition_position_pvp=transition_position_pvp,
         timestep=TIMESTEP, position=POSITION, velocity=VELOCITY,
-        n_restart=N_RESTART
+        n_restart=N_RESTART,
+        seed=SEED_RUN
     )
-
+    # pos_when_ap0 = runs[0]["position"]
+    # n_restart, len_pos = pos_when_ap0.shape
+    # for i in range(n_restart):
+    #     print(f"Restart {i}:")
+    #     for j in range(len_pos):
+    #         print(f"Time {j}: a={action_plans[0][j]} pos={pos_when_ap0[i, j]}")
     # Compute performance of each action plan
     performance = [
         np.mean(r["position"][:, -1]) for r in runs
@@ -88,24 +70,26 @@ def main():
     sorted_action_plans = action_plans[idx]
     for i, ap in enumerate(sorted_action_plans):
         print(f"#{i}: AP{idx[i]} {ap} with performance {performance[idx[i]]:.2f}")
-
+    # Plot the runs
     plot.runs(*runs)
-
     # Select action plan
     af_run = test_assistant_model(
         action_plans=action_plans,
         log_prior_position=LOG_PRIOR,
-        gamma=1.0,
+        gamma=GAMMA,
         n_episodes=N_EPISODES,
-        alpha_jitter=0.1,
+        alpha_jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
         position=POSITION,
         velocity=VELOCITY,
         transition_velocity_atvv=transition_velocity_atvv,
         transition_position_pvp=transition_position_pvp,
         timestep=TIMESTEP,
-        n_restart=N_RESTART
+        n_restart=N_RESTART,
+        seed=SEED_RUN
     )
+    # Record the run
     runs.append(af_run)
+    # Plot the runs
     plot.runs(*runs)
     plot.plot_af(af_run)
 

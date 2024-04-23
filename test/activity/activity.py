@@ -45,7 +45,7 @@ def build_pseudo_count_matrix(
         activity: np.ndarray,
         timestep: np.ndarray,
         velocity: np.ndarray,
-        jitter: float = 1e-6,
+        jitter: float,
         dt_min: datetime = None,
         dt_max: datetime = None,
         n_action: int = 2,
@@ -130,11 +130,17 @@ def get_datetime_from_timestep(t, now, timestep):
     return datetime.combine(now.date(), tm)
 
 
-def is_nudged(now, username):
-    u = User.objects.filter(username=username).first()
-    assert u is not None, f"User {username} not found."
-    ch = u.challenge_set.filter(accepted=True, dt_begin__lte=now, dt_end__gte=now)
-    return ch.exists()
+# def is_nudged(now, username):
+#     u = User.objects.filter(username=username).first()
+#     assert u is not None, f"User {username} not found."
+#     for c in u.challenge_set.filter(accepted=True):
+#         print(c.dt_begin, c.dt_end, now)
+#         if c.dt_begin <= now <= c.dt_end:
+#             print("yeah")
+#         else:
+#             print("no")
+#     ch = u.challenge_set.filter(accepted=True, dt_begin__lte=now, dt_end__gte=now)
+#     return ch.exists()
 
 
 def extract_step_events(

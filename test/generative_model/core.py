@@ -13,25 +13,56 @@ from test.activity.activity import (
 def generative_model(
         user, data_path, timestep, n_samples, child_models_n_components,
         velocity, pseudo_count_jitter, position, sigma_transition_position,
-        action_plans
+        action_plans,
+        seed
 ):
+
+    # print("generative_model ----------------")
+    # print("user", user)
+    # print("data_path", data_path)
+    # print("timestep", timestep)
+    # print("n_samples", n_samples)
+    # print("child_models_n_components", child_models_n_components)
+    # print("velocity", velocity)
+    # print("pseudo_count_jitter", pseudo_count_jitter)
+    # print("position", position)
+    # print("sigma_transition_position", sigma_transition_position)
+    # print("action_plans", action_plans)
+    # print("seed", seed)
 
     # Load data
     step_events = data.load_data(user=user, data_path=data_path)
 
     # Fit the model
-    model, transforms = fit_model(step_events=step_events, child_models_n_components=child_models_n_components)
+    model, transforms = fit_model(
+        step_events=step_events,
+        child_models_n_components=child_models_n_components,
+        random_state=seed
+    )
 
-    step_events = sample(model=model, transforms=transforms, n_samples=n_samples)
+    step_events = sample(
+        model=model,
+        transforms=transforms,
+        n_samples=n_samples,
+        seed=seed
+    )
 
-    activity_samples = compute_deriv_cum_steps(step_events=step_events, timestep=timestep)
+    activity_samples = compute_deriv_cum_steps(
+        step_events=step_events,
+        timestep=timestep
+    )
 
-    nudge_effect = generate_nudge_effect(timestep=timestep, n_samples=n_samples)
+    nudge_effect = generate_nudge_effect(
+        timestep=timestep,
+        n_samples=n_samples,
+        seed=seed
+    )
 
     observed_activity, observed_action_plans = generate_observations(
         activity_samples=activity_samples,
         nudge_effect=nudge_effect,
         action_plans=action_plans,
+        seed=seed
     )
 
     # Compute pseudo-count matrix

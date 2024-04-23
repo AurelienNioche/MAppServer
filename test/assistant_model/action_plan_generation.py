@@ -6,6 +6,8 @@ import itertools
 from user.models import User
 from test.activity.activity import extract_actions
 
+from MAppServer.settings import TIME_ZONE
+
 SEC_IN_DAY = 86400
 
 
@@ -14,6 +16,7 @@ def get_timestep(dt, timestep):
     Get the timestep index for a given datetime
     """
     timestep_duration = SEC_IN_DAY / timestep.size
+    dt = dt.astimezone(timezone(TIME_ZONE))
     start_of_day = datetime.combine(dt, time.min, tzinfo=dt.tzinfo)
     diff = (dt - start_of_day).total_seconds()
     timestep = diff // timestep_duration
@@ -34,12 +37,16 @@ def get_challenges(time_zone, challenge_window, offer_window, n_challenges_per_d
     start_time = timezone(time_zone).localize(start_time)
 
     # Generate datetime objects
-    datetimes = [start_time + timedelta(hours=offer_window) +
-                 timedelta(hours=i*(challenge_window+offer_window))
-                 for i in range(n_challenges_per_day)]
+    datetimes = [
+        start_time + timedelta(hours=offer_window) +
+        timedelta(hours=i*(challenge_window+offer_window))
+        for i in range(n_challenges_per_day)]
 
-    challenges = [Challenge(dt_earliest=dt, dt_latest=dt + timedelta(hours=challenge_window))
-                  for dt in datetimes]
+    challenges = [
+        Challenge(
+            dt_earliest=dt,
+            dt_latest=dt + timedelta(hours=challenge_window)
+        ) for dt in datetimes]
     return challenges
 
 

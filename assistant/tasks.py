@@ -8,7 +8,10 @@ import django.db.models
 from MAppServer.settings import TIME_ZONE
 from assistant.models import User
 
-from test.config.config import TIMESTEP, POSITION, VELOCITY, SIGMA_POSITION_TRANSITION, GAMMA, LOG_PRIOR
+from test.config.config import (
+    TIMESTEP, POSITION, VELOCITY, SIGMA_POSITION_TRANSITION, GAMMA, LOG_PRIOR,
+    HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER
+)
 from test.test__generative_model import get_possible_action_plans
 from test.assistant_model.action_plan_selection import select_action_plan
 from test.activity.activity import (
@@ -102,21 +105,17 @@ def update_challenges_based_on_action_plan(action_plan, now, later_challenges, t
         ch.save()
 
 
-def update_beliefs(
+def update_beliefs_and_challenges(
         u: User,
         now: str = None
 ):
+    """
+    Update the beliefs concerning the user and update the challenges accordingly
+    """
     if now is None:
         now = datetime.now(tz=timezone(TIME_ZONE))
     else:
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
-
-    # print(f"Updating beliefs for user {u.username} at {now}")
-    # print("Now:", now)
-    # Delete all entries for today
-    # u.velocity_set.filter(dt__date=now.date()).delete()
-    # u.position_set.filter(dt__date=now.date()).delete()
-    # u.alpha_set.filter(date=now.date()).delete()
 
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
@@ -142,6 +141,7 @@ def update_beliefs(
         actions=actions,
         timestep=TIMESTEP,
         velocity=VELOCITY,
+        jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
         dt_min=dt_min, dt_max=dt_max)
 
     transition_position_pvp = build_position_transition_matrix(
@@ -155,16 +155,24 @@ def update_beliefs(
         deriv_cumulative_steps=deriv_cum_steps,
         dates=dates,
         now=now,
-        timestep=TIMESTEP)
+        timestep=TIMESTEP
+    )
 
     today_challenges = u.challenge_set.filter(dt_begin__date=now.date())
+    # print("today_challenges")
+    # for c in today_challenges:
+    #     print(local(c.dt_earliest), local(c.dt_latest))
 
-    action_plans_including_past, action_plans = get_possible_action_plans(
+    poss_action_plans = get_possible_action_plans(
         challenges=today_challenges,
         timestep=TIMESTEP,
         u=u,
         now=now
     )
+
+    action_plans_including_past, action_plans = poss_action_plans
+
+    # print("action_plans", action_plans_including_past)
 
     # TODO: Do extra tests to be sure that the action plans are correct
     if len(action_plans) == 0:
@@ -182,11 +190,15 @@ def update_beliefs(
         position=POSITION,
         velocity=VELOCITY
     )
+    action_plan = action_plans[action_plan_idx]
+
+    if HEURISTIC is not None:
+        print("Using heuristic")
+        action_plan = action_plans_including_past[HEURISTIC, t_idx:]
 
     update_challenges_based_on_action_plan(
-        action_plan=action_plans[action_plan_idx],
+        action_plan=action_plan,
         now=now,
         later_challenges=later_challenges,
         timestep=TIMESTEP
     )
-

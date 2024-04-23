@@ -288,7 +288,7 @@ class RequestHandler:
         if new_activity:
             # TODO: this might take a long time,
             #  would need to use Celery or something similar
-            assistant.tasks.update_beliefs(u=u, now=now)
+            assistant.tasks.update_beliefs_and_challenges(u=u, now=now)
         # Prepare the response
         r = {"subject": subject}
         r.update(get_last_activity_timestamp(u))

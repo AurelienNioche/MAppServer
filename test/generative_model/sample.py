@@ -1,12 +1,6 @@
-import numpy as np
-from sklearn.mixture import GaussianMixture
 import warnings
-
 import numpy as np
 from sklearn.mixture import GaussianMixture
-from sklearn.preprocessing import StandardScaler
-
-from . transformers import StepTransformer, ParamTransformer
 
 
 def sample_child_model(model, step_transformer, n_steps, timestep):
@@ -27,7 +21,7 @@ def sample_parent_model(
         model,
         transforms,
         n_samples,  # This will be number of days that will be generated
-        seed=12345
+        seed
 ) -> list[np.ndarray]:
 
     # Unpack the transforms
@@ -45,10 +39,6 @@ def sample_parent_model(
     step_events = []
 
     for day in range(n_samples):
-
-        # Choose with type of model to use ---------------------------
-
-        # Using the alpha-model, draw a model type for model-gamma according to the goodness of fit scores
 
         # Un-transform the features
         x = transformed_features[day].reshape(1, -1)
