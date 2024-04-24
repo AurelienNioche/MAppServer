@@ -51,20 +51,28 @@ GENERATIVE_MODEL_PSEUDO_COUNT_JITTER = 1e-03
 ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER = 0.1
 GAMMA = 1.0
 
+# ------------------------------------------------------
+# Parameters for the generative model
 N_SAMPLES = 1000
 CHILD_MODELS_N_COMPONENTS = 3
+SEED_GENERATIVE_MODEL = 43
+# ------------------------------------------------------
+# Parameters for the assistant model
 LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
-N_RESTART = 10
-N_EPISODES = 100
+# Number of new instances of the (same) model
+N_RESTART = 1
+# Number of episodes to run this instance of model for
+N_EPISODES = 1
+# Seed
+SEED_ASSISTANT = 43
 
 # ------------------------------------------
-
-SEED_GENERATIVE_MODEL = 42
-SEED_RUN = 42
+# For the simulation
+SEED_RUN = 43
 
 # -------------------------------------------
 
 HEURISTIC = None
 N_DAY = N_EPISODES
 
-assert N_DAY > 1, "N_DAY must be greater than 1"
+# assert N_DAY > 1, "N_DAY must be greater than 1"

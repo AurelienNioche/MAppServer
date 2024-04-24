@@ -16,10 +16,11 @@ def test_assistant_model(
         action_plans,
         log_prior_position,
         gamma,
-        seed
+        seed_assistant,
+        seed_run
 ):
     # Seed for reproducibility
-    rng = np.random.default_rng(seed=seed)
+    rng = np.random.default_rng(seed=seed_run)
     # Initialize history
     hist_err = np.zeros((n_restart, n_episodes*(timestep.size-1)))
     hist_pos = np.zeros((n_restart, n_episodes, timestep.size-1))
@@ -51,7 +52,8 @@ def test_assistant_model(
                 v_idx=init_v_idx,
                 pos_idx=init_pos_idx,
                 t_idx=0,
-                action_plans=action_plans
+                action_plans=action_plans,
+                seed=seed_assistant
             )
             # Record values
             hist_epistemic[sample, ep_idx] = ep_value

@@ -43,8 +43,7 @@ def generative_model(
     step_events = sample(
         model=model,
         transforms=transforms,
-        n_samples=n_samples,
-        seed=seed
+        n_samples=n_samples
     )
 
     activity_samples = compute_deriv_cum_steps(

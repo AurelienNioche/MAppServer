@@ -251,26 +251,33 @@ def plot_af(run):
     samples = list(range(n_sample))[:min(n_sample, 3)]
     all_ep = list(range(n_episode))
     episodes = all_ep[:min(n_episode, 4)] + all_ep[-4:]
+    episodes = np.unique(episodes)  # To avoid duplicates
 
-    fig, axes = plt.subplots(figsize=(4*len(samples), 3*len(episodes)), nrows=len(episodes), ncols=len(samples), sharex=True, sharey=True)
+    fig, axes = plt.subplots(figsize=(4*len(samples), 3*len(episodes)),
+                             nrows=len(episodes),
+                             ncols=len(samples),
+                             sharex=True, sharey=True)
     fig.set_tight_layout(True)
 
     for sample in samples:
 
         for row_idx, ep_idx in enumerate(episodes):
 
-            ax = axes[row_idx, sample]
+            if isinstance(axes, np.ndarray):
+                ax = axes[row_idx, sample]
+            else:
+                ax = axes
 
-            ax.plot(np.arange(n_timestep), epistemic[sample, ep_idx], label="epistemic", color="C0")
+            line1, = ax.plot(np.arange(n_timestep), epistemic[sample, ep_idx], label="epistemic", color="C0")
             ax.set_ylabel("epistemic value")
-            ax.legend()
-
-            ax.legend()
+            # ax.legend()
 
             ax = ax.twinx()
 
-            ax.plot(np.arange(n_timestep), pragmatic[sample, ep_idx], label="pragmatic", color="C1")
+            line2, = ax.plot(np.arange(n_timestep), pragmatic[sample, ep_idx], label="pragmatic", color="C1")
             ax.set_ylabel("pragmatic value")
+            # ax.legend()
 
+            ax.legend([line1, line2], ["epistemic", "pragmatic"])
             ax.set_xlabel("action plan")
     plt.show()

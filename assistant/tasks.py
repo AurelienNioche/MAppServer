@@ -188,7 +188,8 @@ def update_beliefs_and_challenges(
         log_prior_position=LOG_PRIOR,
         gamma=GAMMA,
         position=POSITION,
-        velocity=VELOCITY
+        velocity=VELOCITY,
+        seed=SEED_ASSISTANT
     )
     action_plan = action_plans[action_plan_idx]
 

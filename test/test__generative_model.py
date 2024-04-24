@@ -13,7 +13,7 @@ from test.config.config import (
     ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
     N_SAMPLES, CHILD_MODELS_N_COMPONENTS, LOG_PRIOR,
     N_RESTART, N_EPISODES, CHALLENGE_WINDOW, OFFER_WINDOW, N_CHALLENGE, FIRST_CHALLENGE_OFFER,
-    SEED_GENERATIVE_MODEL, SEED_RUN, GAMMA
+    SEED_GENERATIVE_MODEL, SEED_RUN, SEED_ASSISTANT, GAMMA
 )
 
 
@@ -85,7 +85,8 @@ def main():
         transition_position_pvp=transition_position_pvp,
         timestep=TIMESTEP,
         n_restart=N_RESTART,
-        seed=SEED_RUN
+        seed_run=SEED_RUN,
+        seed_assistant=SEED_ASSISTANT
     )
     # Record the run
     runs.append(af_run)
