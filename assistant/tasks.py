@@ -10,12 +10,13 @@ from assistant.models import User
 
 from test.config.config import (
     TIMESTEP, POSITION, VELOCITY, SIGMA_POSITION_TRANSITION, GAMMA, LOG_PRIOR,
-    HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER
+    HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, SEED_ASSISTANT,
+    INIT_POS_IDX, INIT_V_IDX
 )
 from test.test__generative_model import get_possible_action_plans
 from test.assistant_model.action_plan_selection import select_action_plan
 from test.activity.activity import (
-    compute_deriv_cum_steps,
+    convert_timesteps_into_activity_level,
     get_timestep, get_datetime_from_timestep,
     extract_actions, extract_step_events,
     build_pseudo_count_matrix, build_position_transition_matrix)
@@ -26,6 +27,9 @@ SEC_IN_DAY = 86400
 
 def generate_uuid():
     return str(uuid.uuid4())
+
+def local(dt: datetime) -> datetime:
+    return dt.astimezone(timezone(TIME_ZONE))
 
 
 def read_activities_and_extract_step_events(
@@ -42,7 +46,10 @@ def read_activities_and_extract_step_events(
         datetimes=pd.to_datetime(dt),
         remove_empty_days=False
     )
-    return step_events, uniq_days, dt.min(), dt.max()
+    if len(step_events) == 0:
+        return step_events, uniq_days, None, None
+    else:
+        return step_events, uniq_days, dt.min(), dt.max()
 
 
 def get_future_challenges(
@@ -59,7 +66,7 @@ def get_future_challenges(
 
 def get_current_position_and_velocity(
         u: User,
-        deriv_cumulative_steps: np.ndarray,
+        activity: np.ndarray,
         dates: list,
         now: datetime,
         timestep: np.ndarray
@@ -67,6 +74,9 @@ def get_current_position_and_velocity(
     """Get the current position and velocity of the user"""
     # Get the current timestep
     t_idx = get_timestep(now, timestep=timestep)
+    # Manage the case where there is no activity/we are at the start of the day
+    if t_idx == 0:
+        return INIT_POS_IDX, INIT_V_IDX, t_idx
     # Get the current position and velocity
     start_of_day = datetime.combine(now, time.min, tzinfo=timezone(TIME_ZONE))
     today_activities = u.activity_set.filter(dt__gt=start_of_day, dt__lt=now)
@@ -79,14 +89,10 @@ def get_current_position_and_velocity(
     ts = get_timestep(now, timestep=timestep)
     # print("date", date, "ts", ts)
     # print("deriv_cumulative_steps", deriv_cumulative_steps.shape)
-    v = deriv_cumulative_steps[date, ts]
+    v = activity[date, ts]
     # print("v", v)
     v_idx = np.digitize(v, VELOCITY, right=False) - 1
     return pos_idx, v_idx, t_idx
-
-
-def local(dt: datetime) -> datetime:
-    return dt.astimezone(timezone(TIME_ZONE))
 
 
 def update_challenges_based_on_action_plan(action_plan, now, later_challenges, timestep):
@@ -113,31 +119,44 @@ def update_beliefs_and_challenges(
     Update the beliefs concerning the user and update the challenges accordingly
     """
     if now is None:
+        print("I used default option for `now`")
         now = datetime.now(tz=timezone(TIME_ZONE))
     else:
+        print("now", now)
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
-
+    print("now", now)
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
     if first_challenge is None:
-        # print("No future challenges, exiting")
+        print("No future challenges, exiting")
         return
 
     step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
     # print("step_events", step_events)
-    deriv_cum_steps = compute_deriv_cum_steps(
-        step_events=step_events,
-        timestep=TIMESTEP
-    )
+    if len(step_events) > 0:
+        activity = convert_timesteps_into_activity_level(
+            step_events=step_events,
+            timestep=TIMESTEP
+        )
+    else:
+        activity = np.empty((len(dates), TIMESTEP.size - 1))
+        assert activity.size == 0, "Activity should be empty"
 
     # .filter(date=now.date())
     actions = extract_actions(
         u=u,
         timestep=TIMESTEP,
     )
+    actions = np.atleast_2d(actions)
+
+    print("actions", actions.shape)
+    print("activity", activity.shape)
+    if dt_min is not None:
+        print("dt_min", local(dt_min))
+        print("dt_max", local(dt_max))
 
     alpha_tvv = build_pseudo_count_matrix(
-        activity=deriv_cum_steps,
+        activity=activity,
         actions=actions,
         timestep=TIMESTEP,
         velocity=VELOCITY,
@@ -152,54 +171,50 @@ def update_beliefs_and_challenges(
 
     pos_idx, v_idx, t_idx = get_current_position_and_velocity(
         u=u,
-        deriv_cumulative_steps=deriv_cum_steps,
+        activity=activity,
         dates=dates,
         now=now,
         timestep=TIMESTEP
     )
-
+    # Get the challenges for today
     today_challenges = u.challenge_set.filter(dt_begin__date=now.date())
-    # print("today_challenges")
-    # for c in today_challenges:
-    #     print(local(c.dt_earliest), local(c.dt_latest))
-
-    poss_action_plans = get_possible_action_plans(
+    # Get the possible action plans
+    action_plans_including_past, action_plans = get_possible_action_plans(
         challenges=today_challenges,
         timestep=TIMESTEP,
         u=u,
         now=now
     )
-
-    action_plans_including_past, action_plans = poss_action_plans
-
-    # print("action_plans", action_plans_including_past)
-
     # TODO: Do extra tests to be sure that the action plans are correct
     if len(action_plans) == 0:
         return
-
-    action_plan_idx, pragmatic_value, epistemic_value = select_action_plan(
-        alpha_atvv=alpha_tvv,
-        transition_position_pvp=transition_position_pvp,
-        v_idx=v_idx,
-        pos_idx=pos_idx,
-        t_idx=t_idx,
-        action_plans=action_plans,
-        log_prior_position=LOG_PRIOR,
-        gamma=GAMMA,
-        position=POSITION,
-        velocity=VELOCITY,
-        seed=SEED_ASSISTANT
-    )
-    action_plan = action_plans[action_plan_idx]
-
-    if HEURISTIC is not None:
+    # Select the action plan
+    if HEURISTIC is None:
+        # Select the action plan using active inference
+        action_plan_idx, pragmatic_value, epistemic_value = select_action_plan(
+            alpha_atvv=alpha_tvv,
+            transition_position_pvp=transition_position_pvp,
+            v_idx=v_idx,
+            pos_idx=pos_idx,
+            t_idx=t_idx,
+            action_plans=action_plans,
+            log_prior_position=LOG_PRIOR,
+            gamma=GAMMA,
+            position=POSITION,
+            velocity=VELOCITY,
+            seed=SEED_ASSISTANT
+        )
+        # Get the action plan based on the index
+        action_plan = action_plans[action_plan_idx]
+    else:
+        # Use the heuristic (for debug)
         print("Using heuristic")
         action_plan = action_plans_including_past[HEURISTIC, t_idx:]
-
+    # Update the challenges based on the action plan
     update_challenges_based_on_action_plan(
         action_plan=action_plan,
         now=now,
         later_challenges=later_challenges,
         timestep=TIMESTEP
     )
+    print("-" * 80)

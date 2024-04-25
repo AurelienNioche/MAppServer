@@ -5,7 +5,7 @@ from .sample import sample
 from test.data import data
 
 from test.activity.activity import (
-    build_pseudo_count_matrix, compute_deriv_cum_steps,
+    build_pseudo_count_matrix, convert_timesteps_into_activity_level,
     build_position_transition_matrix, normalize_last_dim
 )
 
@@ -46,7 +46,7 @@ def generative_model(
         n_samples=n_samples
     )
 
-    activity_samples = compute_deriv_cum_steps(
+    activity_samples = convert_timesteps_into_activity_level(
         step_events=step_events,
         timestep=timestep
     )

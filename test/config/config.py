@@ -76,3 +76,8 @@ HEURISTIC = None
 N_DAY = N_EPISODES
 
 # assert N_DAY > 1, "N_DAY must be greater than 1"
+
+# _-------------------------------------
+
+INIT_POS_IDX = np.absolute(POSITION).argmin()  # Something close to 0
+INIT_V_IDX = np.absolute(VELOCITY).argmin()    # Something close to 0

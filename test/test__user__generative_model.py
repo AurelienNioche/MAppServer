@@ -88,13 +88,29 @@ class FakeUser(websocket_client.DefaultUser):
         n_timestep, n_velocity, n_position = timestep.size, velocity.size, position.size
         # Get timestep index
         t_idx = get_timestep(now, timestep)
-        if t_idx >= timestep.size - 1:
+        print("t_idx", t_idx, "now", now)
+        if t_idx == 0:
+            step_midnight = 0
+            steps = [{
+                    "ts": now.timestamp()*1000,
+                    "step_midnight": step_midnight,
+                    "android_id": self.android_id
+                }]
+            # print(f"Android ID {self.android_id} - Day {(self.now().date() - self.starting_date).days} - Timestep {t_idx} -  {step_midnight} steps done.")
+            self.android_id += 1
+            to_return = {
+                "now": now.strftime("%d/%m/%Y %H:%M:%S"),
+                "steps": json.dumps(steps),
+            }
             self.increment_time()
+            return to_return
+        elif t_idx >= timestep.size - 1:
             steps = []
             to_return = {
                 "now": now.strftime("%d/%m/%Y %H:%M:%S"),
                 "steps": json.dumps(steps),
             }
+            self.increment_time()
             return to_return
         # Select action plan
         action_plan = extract_actions(
@@ -124,7 +140,7 @@ class FakeUser(websocket_client.DefaultUser):
         # print(f"Android ID {self.android_id} - Day {(self.now().date() - self.starting_date).days} - Timestep {t_idx} -  {step_midnight} steps done.")
         self.android_id += 1
         to_return = {
-            "now": self.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "now": now.strftime("%d/%m/%Y %H:%M:%S"),
             "steps": json.dumps(steps),
         }
         return to_return

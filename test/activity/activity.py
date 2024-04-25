@@ -24,12 +24,16 @@ def normalize_last_dim(alpha):
     return alpha / np.expand_dims(sum_col, axis=-1)
 
 
-def compute_deriv_cum_steps(
+def convert_timesteps_into_activity_level(
         step_events: list,
         timestep: np.ndarray
 ) -> np.ndarray:
     """
-    Compute the derivative of the cumulative steps
+    Convert the timesteps into activity level
+    by computing the "derivative of the cumulative steps"
+    (sounds weird but it is what it is, given the discretization of the data)
+    (if you're not happpy with that, you can go back to the continuous world
+     and enjoy the gradient of the cumulative steps)
     """
     deriv_cum_steps = np.zeros((len(step_events), timestep.size))
     for idx_day, step_events_day in enumerate(step_events):
@@ -54,6 +58,12 @@ def build_pseudo_count_matrix(
     """
     Compute the alpha matrix (pseudo-counts) for the transition matrix
     """
+    # Initialize the pseudo-count matrix
+    alpha_atvv = np.zeros((n_action, timestep.size-1, velocity.size, velocity.size))
+    alpha_atvv += jitter
+    # Return the pseudo-count matrix if there is no activity
+    if activity.size == 0:
+        return alpha_atvv
     # Extract the minimum and maximum timestamps in seconds (period where the data was collected)
     dt_min_sec = dt_min.timestamp() if dt_min is not None else 0
     dt_max_sec = dt_max.timestamp() if dt_max is not None else SECONDS_IN_DAY
@@ -62,23 +72,26 @@ def build_pseudo_count_matrix(
     bins = np.concatenate((velocity, np.full(1, np.inf)))
     # Clip the activity to the bins
     drv = np.clip(activity, bins[0], bins[-1])
-    v_idx = np.digitize(drv, bins, right=False) - 1
-    # Initialize the pseudo-count matrix
-    alpha_atvv = np.zeros((n_action, timestep.size-1, velocity.size, velocity.size))
-    alpha_atvv += jitter
+    v_indexes = np.digitize(drv, bins, right=False) - 1
     # Initialize the time counter
     dt = dt_min_sec if dt_min is not None else 0
     # Loop over the days
     for day in range(activity.shape[0]):
         # Loop over the timesteps
-        for t in range(timestep.size - 1):
-            # If the timestamp is outside the range, skip (just increment the time)
-            if ((dt_min is not None and dt < dt_min_sec)
-                    or (dt_max is not None and dt > dt_max_sec)):
+        for t_idx in range(timestep.size - 1):
+            # If the timestamp is outside the range
+            # skip (just increment the time)
+            if ((dt_min_sec is not None and dt < dt_min_sec)
+                    or (dt_max_sec is not None and dt > dt_max_sec)):
+                # just increment the time...
                 dt += sec_per_timestep
+                # ...and skip
                 continue
             # Increment the pseudo-count matrix
-            alpha_atvv[actions[day, t], t, v_idx[day, t], v_idx[day, t + 1]] += 1
+            a_idx = actions[day, t_idx]
+            v_idx = v_indexes[day, t_idx]
+            v_idx_next = v_indexes[day, t_idx + 1]
+            alpha_atvv[a_idx, t_idx, v_idx, v_idx_next] += 1
             dt += sec_per_timestep
     # Return the pseudo-count matrix
     return alpha_atvv

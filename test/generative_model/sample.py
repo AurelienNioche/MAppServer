@@ -36,7 +36,7 @@ def sample_parent_model(
     step_events = []
     # Generate the steps for each day
     for day in range(n_samples):
-        print("day", day, "-" * 50)
+        # print("day", day, "-" * 50)
         # Un-transform the features
         x = transformed_features[day].reshape(1, -1)
         un_standardised_feat = features_transformer.inverse_transform(x).flatten()
@@ -48,22 +48,33 @@ def sample_parent_model(
         means = params["means"]
         variances = params["variances"]
         weights = params["weights"]
-        print("n_components", n_components)
-        print("means", means)
-        print("variances", variances)
-        print("weights", weights)
+        # print("-" * 50)
+        # print("Sample parent model")
+        # print("n_components", n_components)
+        # print("means", means)
+        # print("variances", variances)
+        # print("weights", weights)
+        # print("n_steps", n_steps)
+        # print("-" * 50)
         # print("trial", trial)
-        rng = np.random.default_rng(day) #  + trial*1000)
+        rng = np.random.default_rng(day)   #  + trial*1000)
         dist_to_draw_from = rng.choice(np.arange(n_components), size=n_steps, p=weights)
+        # print("dist_to_draw_from", dist_to_draw_from)
 
         # Count the occurrences of each value in the preset list
-        counts = [(value, np.count_nonzero(dist_to_draw_from == value)) for value in np.arange(n_components)]
+        counts = [np.count_nonzero(dist_to_draw_from == value) for value in np.arange(n_components)]
 
         samples = []
         for c in range(n_components):
-            samples.append(rng.normal(loc=means[c], scale=variances[c], size=counts[c]))
-
+            # print("counts", counts[c])
+            smp = rng.normal(loc=means[c], scale=variances[c], size=counts[c])
+            # print("c", c, "smp", smp)
+            samples.append(smp)
+        # print("samples before concat", samples)
         samples = np.concatenate(samples)
+        # print("samples shape", samples.shape)
+        # print("samples size", samples.size)
+        # print("samples", samples)
         # gmm = GaussianMixture(
         #     n_components=n_components,
         #     random_state=day + trial*1000,

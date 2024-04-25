@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
+from test.config.config import INIT_POS_IDX, INIT_V_IDX
 from .action_plan_selection import select_action_plan, normalize_last_dim
 
 
@@ -27,16 +28,13 @@ def test_assistant_model(
     hist_vel = np.zeros_like(hist_pos)
     hist_epistemic = np.zeros((n_restart, n_episodes, len(action_plans)))
     hist_pragmatic = np.zeros_like(hist_epistemic)
-    # Find initial position and velocity
-    init_pos_idx = np.absolute(position).argmin()  # Something close to 0
-    init_v_idx = np.absolute(velocity).argmin()    # Something close to 0
     # Number of actions
     n_action = np.unique(action_plans).size
     # Run the model
     for sample in range(n_restart):
-        print("-"*80)
-        print(f"sample {sample}")
-        print("-"*80)
+        # print("-"*80)
+        # print(f"sample {sample}")
+        # print("-"*80)
         # Initialize alpha
         alpha_atvv = np.zeros((n_action, timestep.size-1, velocity.size, velocity.size)) + alpha_jitter
         epoch = 0
@@ -49,8 +47,8 @@ def test_assistant_model(
                 velocity=velocity,
                 alpha_atvv=alpha_atvv,
                 transition_position_pvp=transition_position_pvp,
-                v_idx=init_v_idx,
-                pos_idx=init_pos_idx,
+                v_idx=INIT_V_IDX,
+                pos_idx=INIT_POS_IDX,
                 t_idx=0,
                 action_plans=action_plans,
                 seed=seed_assistant
@@ -62,8 +60,8 @@ def test_assistant_model(
             policy = action_plans[action_plan_idx]
             print(f"Sample {sample} - Episode {ep_idx} - Policy {action_plan_idx}")
             # Run the policy
-            v_idx = init_v_idx
-            pos_idx = init_pos_idx
+            pos_idx = INIT_POS_IDX
+            v_idx = INIT_V_IDX
             # Going through the policy
             for t_idx in range(timestep.size - 1):
                 # Pick new action
@@ -86,6 +84,7 @@ def test_assistant_model(
                 # Log
                 error = np.mean(np.absolute(transition_velocity_atvv - normalize_last_dim(alpha_atvv)))
                 hist_err[sample, epoch] = error
+                print("t_idx", t_idx, "a", a, "v_idx", v_idx, "pos_idx", pos_idx, "error", error)
             epoch += 1
     return {
             "gamma": gamma,

@@ -242,42 +242,44 @@ def q(alpha, title=r"$\alpha$", figsize=(6, 2), cmap="viridis", between_0_and_1=
 
 
 def plot_af(run):
-
+    # Get the data
     epistemic = run["epistemic"]
     pragmatic = run["pragmatic"]
-    # actions = run["best_action_plan"]
     n_sample, n_episode, n_timestep = epistemic.shape
-
+    # Get the samples and episodes to plot
     samples = list(range(n_sample))[:min(n_sample, 3)]
     all_ep = list(range(n_episode))
     episodes = all_ep[:min(n_episode, 4)] + all_ep[-4:]
     episodes = np.unique(episodes)  # To avoid duplicates
-
+    # Create the figure
     fig, axes = plt.subplots(figsize=(4*len(samples), 3*len(episodes)),
                              nrows=len(episodes),
                              ncols=len(samples),
                              sharex=True, sharey=True)
     fig.set_tight_layout(True)
-
+    # Plot the data
     for sample in samples:
-
         for row_idx, ep_idx in enumerate(episodes):
-
-            if isinstance(axes, np.ndarray):
+            # Get the axes
+            if isinstance(axes, np.ndarray) and axes.ndim > 1:
                 ax = axes[row_idx, sample]
+            elif isinstance(axes, np.ndarray):
+                if len(episodes) > 1:
+                    ax = axes[row_idx]
+                else:
+                    ax = axes[sample]
             else:
                 ax = axes
-
+            # Plot the epistemic value
             line1, = ax.plot(np.arange(n_timestep), epistemic[sample, ep_idx], label="epistemic", color="C0")
             ax.set_ylabel("epistemic value")
-            # ax.legend()
-
+            # Create a second y-axis
             ax = ax.twinx()
-
+            # Plot the pragmatic value
             line2, = ax.plot(np.arange(n_timestep), pragmatic[sample, ep_idx], label="pragmatic", color="C1")
             ax.set_ylabel("pragmatic value")
-            # ax.legend()
-
+            # Add a legend
             ax.legend([line1, line2], ["epistemic", "pragmatic"])
+            # Add a label to the x-axis
             ax.set_xlabel("action plan")
     plt.show()
