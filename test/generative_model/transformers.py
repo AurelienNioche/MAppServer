@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
-from scipy.special import inv_boxcox, logit, expit as sigmoid
+from scipy.special import inv_boxcox, boxcox, logit, expit as sigmoid
 
 
 class StepTransformer:
@@ -21,13 +21,7 @@ class StepTransformer:
         return stats.boxcox(self.step_scaler.transform(logit(X)).flatten(), lmbda=self.lambda_param)
 
     def _inv_transform(self, transformed):
-        # if transformed.ndim == 1:
-        #     transformed = transformed.reshape(-1, 1)
-        # print("transformed shape", transformed.shape)
-        _inv_boxcox = inv_boxcox(transformed, self.lambda_param).reshape(-1, 1)
-        # print("_inv_boxcox shape", _inv_boxcox.shape)
-        _inv_trans = self.step_scaler.inverse_transform(_inv_boxcox).flatten()
-        return sigmoid(_inv_trans)
+        return sigmoid(self.step_scaler.inverse_transform(inv_boxcox(transformed, self.lambda_param).reshape(-1, 1)).flatten())
 
     def transform(self, step_events):
         if isinstance(step_events, list):
@@ -56,48 +50,53 @@ class ParamTransformer:
         self.max_n = max(self.n)
 
     def transform(self, gmm, day):
+
         # Extract the parameters and transform them
-        means = gmm.means_.flatten()
-        variances = np.log1p(gmm.covariances_).flatten()
-        weights = logit(gmm.weights_.flatten())
-        n_steps = np.atleast_1d(np.log(self.n[day] / self.max_n))
+        transformed_means = gmm.means_.flatten()
+        transformed_vars = np.log1p(gmm.covariances_).flatten()
+        transformed_weights = logit(gmm.weights_.flatten())
+        transformed_n = np.atleast_1d(np.log(self.n[day] / self.max_n))
+
         # Store the transformed parameters
-        features = [n_steps, means, variances]
-        n_components = means.size
-        if n_components > 1:
-            features += [weights]
-        assert len(means) == len(variances) == len(weights) == n_components
+        n_components = len(gmm.means_)
+        if n_components == 1:
+            features = [transformed_means, transformed_vars, transformed_n]
+
+        else:
+            features = [transformed_means, transformed_vars, transformed_weights, transformed_n]
+
         # Concatenate the transformed parameters
         return np.concatenate(features)
 
     def inverse_transform(self, features):
-        # Determine the number of components
-        # 4 parameters per component. The first one is n.
-        # Exception: if there is only one component, there is no weight, so only 2 parameters and n.
-        # Because of that, we put min(1, ...)
-        n_components = min(1, (len(features) - 1) // 3)
-        # print("n_components in inverse transform", n_components)
+
+        n_components = len(features) // 3 - 1
+
         # Extract the transformed parameters
-        n_steps = features[0]
-        means = features[1:n_components+1]
-        variances = features[n_components+1:2*n_components+1]
-        if n_components > 1:
-            weights = features[2*n_components+1:]
+        transformed_means = features[:n_components]
+        transformed_vars = features[n_components:2*n_components]
+        if n_components == 1:
+            transformed_weights = np.empty(0)
         else:
+            transformed_weights = features[2*n_components:-1]
+        transformed_n = features[-1]
+
+        # Inverse-transform the parameters
+        means = transformed_means
+        variances = np.expm1(transformed_vars)
+        if n_components == 1:
             weights = np.ones(1)
-        # Inverse-transform the parameters (the means are unchanged)
-        n_steps = int(round(np.exp(n_steps) * self.max_n))
-        variances = np.expm1(variances)
-        if n_components > 1:
-            weights = sigmoid(weights)  # Inverse of logit
+        else:
+            weights = sigmoid(transformed_weights) # Inverse of logit
             weights /= np.sum(weights)  # Normalise the weights
-        # Check the dimensions
-        assert len(means) == len(variances) == len(weights) == n_components
+
+        n = int(round(np.exp(transformed_n) * self.max_n))
+
         # Store the inverse-transformed parameters
         return {
             "means": means,
             "variances": variances,
             "weights": weights,
-            "n": n_steps,
+            "n": n,
             "n_components": n_components
         }

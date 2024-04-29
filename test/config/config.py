@@ -55,7 +55,7 @@ GAMMA = 1.0
 # Parameters for the generative model
 N_SAMPLES = 1000
 CHILD_MODELS_N_COMPONENTS = 3
-SEED_GENERATIVE_MODEL = 43
+SEED_GENERATIVE_MODEL = 42
 # ------------------------------------------------------
 # Parameters for the assistant model
 LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))

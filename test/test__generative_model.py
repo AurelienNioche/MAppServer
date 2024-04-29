@@ -1,6 +1,11 @@
-import numpy as np
-
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE",
+                      "MAppServer.settings")
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
 from MAppServer.settings import TIME_ZONE
+
+import numpy as np
 
 from test.generative_model.core import generative_model
 from test.plot import plot
@@ -72,27 +77,27 @@ def main():
         print(f"#{i}: AP{idx[i]} {ap} with performance {performance[idx[i]]:.2f}")
     # Plot the runs
     plot.runs(*runs)
-    print("running the assistant model")
-    af_run = test_assistant_model(
-        action_plans=action_plans,
-        log_prior_position=LOG_PRIOR,
-        gamma=GAMMA,
-        n_episodes=N_EPISODES,
-        alpha_jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
-        position=POSITION,
-        velocity=VELOCITY,
-        transition_velocity_atvv=transition_velocity_atvv,
-        transition_position_pvp=transition_position_pvp,
-        timestep=TIMESTEP,
-        n_restart=N_RESTART,
-        seed_run=SEED_RUN,
-        seed_assistant=SEED_ASSISTANT
-    )
-    # Record the run
-    runs.append(af_run)
-    # Plot the runs
-    plot.runs(*runs)
-    plot.plot_af(af_run)
+    # print("running the assistant model")
+    # af_run = test_assistant_model(
+    #     action_plans=action_plans,
+    #     log_prior_position=LOG_PRIOR,
+    #     gamma=GAMMA,
+    #     n_episodes=N_EPISODES,
+    #     alpha_jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
+    #     position=POSITION,
+    #     velocity=VELOCITY,
+    #     transition_velocity_atvv=transition_velocity_atvv,
+    #     transition_position_pvp=transition_position_pvp,
+    #     timestep=TIMESTEP,
+    #     n_restart=N_RESTART,
+    #     seed_run=SEED_RUN,
+    #     seed_assistant=SEED_ASSISTANT
+    # )
+    # # Record the run
+    # runs.append(af_run)
+    # # Plot the runs
+    # plot.runs(*runs)
+    # plot.plot_af(af_run)
 
 
 if __name__ == "__main__":

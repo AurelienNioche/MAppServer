@@ -1,5 +1,11 @@
 import numpy as np
-from . helpers import peaked_function
+from scipy.special import expit as sigmoid
+
+
+def peaked_function(x, peak_position=0, sharpness=1):
+    def mirror_sigmoid(_x):
+        return 1 - sigmoid(_x)
+    return sigmoid(sharpness * (x - peak_position)) * mirror_sigmoid(sharpness * (x - peak_position))
 
 
 def generate_nudge_effect(timestep, n_samples, seed):
