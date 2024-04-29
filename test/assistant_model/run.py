@@ -1,8 +1,8 @@
 import numpy as np
 from tqdm import tqdm
 
-from test.config.config import INIT_POS_IDX, INIT_V_IDX
-from .action_plan_selection import select_action_plan, normalize_last_dim
+from test.config.config import INIT_POS_IDX, INIT_V_IDX, LOG_AT_EACH_EPISODE, LOG_AT_EACH_TIMESTEP
+from .action_plan_selection import select_action_plan, normalize_last_dim, make_a_step
 
 
 def test_assistant_model(
@@ -58,33 +58,32 @@ def test_assistant_model(
             hist_pragmatic[sample, ep_idx] = pr_value
             # Select the best action plan ('policy')
             policy = action_plans[action_plan_idx]
-            print(f"Sample {sample} - Episode {ep_idx} - Policy {action_plan_idx}")
+            if LOG_AT_EACH_EPISODE:
+                print(f"restart #{sample} - episode #{ep_idx} - policy: {action_plan_idx}")
+                print("-"*80)
             # Run the policy
             pos_idx = INIT_POS_IDX
             v_idx = INIT_V_IDX
             # Going through the policy
-            for t_idx in range(timestep.size - 1):
-                # Pick new action
-                a = policy[t_idx]
-                # Draw new velocity
-                new_v_idx = rng.choice(
-                    np.arange(velocity.size),
-                    p=transition_velocity_atvv[a, t_idx, v_idx, :])
-                # Update pseudo-counts
-                alpha_atvv[a, t_idx, v_idx, new_v_idx] += 1
-                # Update velocity and position
-                v_idx = new_v_idx
-                pos_idx = rng.choice(
-                    position.size,
-                    p=transition_position_pvp[pos_idx, v_idx, :]
+            for t_idx in range(timestep.size-1):
+                action, new_v_idx, new_pos_idx = make_a_step(
+                    policy=policy, t_idx=t_idx, v_idx=v_idx, pos_idx=pos_idx,
+                    position=position, velocity=velocity,
+                    transition_velocity_atvv=transition_velocity_atvv,
+                    transition_position_pvp=transition_position_pvp,
+                    rng=rng
                 )
+                # Update pseudo-counts
+                alpha_atvv[action, t_idx, v_idx, new_v_idx] += 1
+                # Replace old values with the new value
+                v_idx = new_v_idx
+                pos_idx = new_pos_idx
                 # Record position and velocity
                 hist_pos[sample, ep_idx, t_idx] = position[pos_idx]
                 hist_vel[sample, ep_idx, t_idx] = velocity[v_idx]
                 # Log
                 error = np.mean(np.absolute(transition_velocity_atvv - normalize_last_dim(alpha_atvv)))
                 hist_err[sample, epoch] = error
-                print("t_idx", t_idx, "a", a, "v_idx", v_idx, "pos_idx", pos_idx, "error", error)
             epoch += 1
     return {
             "gamma": gamma,

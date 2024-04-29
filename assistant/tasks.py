@@ -28,6 +28,7 @@ SEC_IN_DAY = 86400
 def generate_uuid():
     return str(uuid.uuid4())
 
+
 def local(dt: datetime) -> datetime:
     return dt.astimezone(timezone(TIME_ZONE))
 
@@ -125,6 +126,13 @@ def update_beliefs_and_challenges(
         print("now", now)
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
     print("now", now)
+
+    t_idx = get_timestep(now, timestep=TIMESTEP)
+    # TODO: Check if it is what we want in the future - but nae bother, no future!
+    if t_idx > 0:
+        print(f"t_idx={t_idx} Not at the start of the day, exiting")
+        return
+
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
     if first_challenge is None:
@@ -142,6 +150,14 @@ def update_beliefs_and_challenges(
         activity = np.empty((len(dates), TIMESTEP.size - 1))
         assert activity.size == 0, "Activity should be empty"
 
+
+    pos_idx, v_idx, t_idx = get_current_position_and_velocity(
+        u=u,
+        activity=activity,
+        dates=dates,
+        now=now,
+        timestep=TIMESTEP
+    )
     # .filter(date=now.date())
     actions = extract_actions(
         u=u,
@@ -169,13 +185,6 @@ def update_beliefs_and_challenges(
         sigma_transition_position=SIGMA_POSITION_TRANSITION
     )
 
-    pos_idx, v_idx, t_idx = get_current_position_and_velocity(
-        u=u,
-        activity=activity,
-        dates=dates,
-        now=now,
-        timestep=TIMESTEP
-    )
     # Get the challenges for today
     today_challenges = u.challenge_set.filter(dt_begin__date=now.date())
     # Get the possible action plans

@@ -7,6 +7,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
+from MAppServer.settings import TIME_ZONE
+
 import numpy as np
 from scipy import stats
 from datetime import datetime, time, timedelta
@@ -125,7 +127,7 @@ def build_position_transition_matrix(
     return transition_position_pvp
 
 
-def get_timestep(dt, timestep, timezone="Europe/London"):
+def get_timestep(dt, timestep, timezone=TIME_ZONE):
     """
     Get the timestep index for a given datetime
     """

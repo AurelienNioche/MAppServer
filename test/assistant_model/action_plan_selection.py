@@ -1,10 +1,35 @@
 import numpy as np
+from test.config.config import LOG_AT_EACH_TIMESTEP
 
 
 def normalize_last_dim(alpha):
     sum_col = np.sum(alpha, axis=-1)
     sum_col[sum_col <= 0.0] = 1
     return alpha / np.expand_dims(sum_col, axis=-1)
+
+
+def make_a_step(
+        t_idx, policy, v_idx, pos_idx,
+        position, velocity,
+        transition_velocity_atvv,
+        transition_position_pvp,
+        rng
+):
+    # Pick new action
+    action = policy[t_idx]
+    # Draw new velocity
+    new_v_idx = rng.choice(
+        np.arange(velocity.size),
+        p=transition_velocity_atvv[action, t_idx, v_idx, :])
+    # Update velocity and position
+    new_pos_idx = rng.choice(
+        position.size,
+        p=transition_position_pvp[pos_idx, v_idx, :]
+    )
+    if LOG_AT_EACH_TIMESTEP:
+        print(f"t_idx {t_idx:02} a {action} v_idx {v_idx:02} pos_idx {pos_idx:02} rng state {rng.bit_generator.state['state']['state']}")
+
+    return action, new_v_idx, new_pos_idx
 
 
 def select_action_plan(
@@ -24,6 +49,8 @@ def select_action_plan(
     # Set the seed
     # TODO: Check if this is the correct way to set the seed
     rng = np.random.default_rng(seed)
+    print("-"*80)
+    print(f"Assistant: t_idx={t_idx:02} v_idx={v_idx:02} pos_idx={pos_idx:02} rng state {rng.bit_generator.state['state']['state']}")
     # Get the dimensions of the action plans
     n_action_plan, h = action_plans.shape
     # Initialize action plan values
@@ -97,4 +124,6 @@ def select_action_plan(
     idx_close_to_max = np.where(close_to_max_efe)[0]
     # print("idx close to max", idx_close_to_max)
     best_action_plan_index = rng.choice(idx_close_to_max)
+    print("Selected action plan", best_action_plan_index)
+    print("-"*80)
     return best_action_plan_index, pragmatic, epistemic

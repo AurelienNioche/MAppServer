@@ -26,25 +26,25 @@ from MAppServer.settings import TIME_ZONE
 #         },
 #     ]))
 
-v = np.load("transition_velocity_atvv.npy")
-p = np.load("transition_position_pvp.npy")
-
-v2 = np.load("transition_velocity_atvv_2.npy")
-p2 = np.load("transition_position_pvp_2.npy")
-
-pos = np.load("position.npy")
-vel = np.load("velocity.npy")
-
-ap = np.load("action_plans.npy")
-
-pos2 = np.load("position_2.npy")
-vel2 = np.load("velocity_2.npy")
-ap2 = np.load("action_plans_2.npy")
-
-print("v == v2", np.allclose(v, v2))
-print("p == p2", np.allclose(p, p2))
-
-print("pos == pos2", np.allclose(pos, pos2))
-print("vel == vel2", np.allclose(vel, vel2))
-print("ap == ap2", np.allclose(ap, ap2))
+# v = np.load("transition_velocity_atvv.npy")
+# p = np.load("transition_position_pvp.npy")
+#
+# v2 = np.load("transition_velocity_atvv_2.npy")
+# p2 = np.load("transition_position_pvp_2.npy")
+#
+# pos = np.load("position.npy")
+# vel = np.load("velocity.npy")
+#
+# ap = np.load("action_plans.npy")
+#
+# pos2 = np.load("position_2.npy")
+# vel2 = np.load("velocity_2.npy")
+# ap2 = np.load("action_plans_2.npy")
+#
+# print("v == v2", np.allclose(v, v2))
+# print("p == p2", np.allclose(p, p2))
+#
+# print("pos == pos2", np.allclose(pos, pos2))
+# print("vel == vel2", np.allclose(vel, vel2))
+# print("ap == ap2", np.allclose(ap, ap2))
 
