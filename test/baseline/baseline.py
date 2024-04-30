@@ -11,8 +11,8 @@ def run(
     n_restart,
     seed
 ):
-    np.save("transition_velocity_atvv.npy", transition_velocity_atvv)
-    np.save("transition_position_pvp.npy", transition_position_pvp)
+    # np.save("transition_velocity_atvv.npy", transition_velocity_atvv)
+    # np.save("transition_position_pvp.npy", transition_position_pvp)
     rng = np.random.default_rng(seed=seed)
     n_timestep, n_velocity, n_position = timestep.size, velocity.size, position.size
     runs = []

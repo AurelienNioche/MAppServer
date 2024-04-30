@@ -50,28 +50,24 @@ class ParamTransformer:
         self.max_n = max(self.n)
 
     def transform(self, gmm, day):
-
         # Extract the parameters and transform them
         transformed_means = gmm.means_.flatten()
         transformed_vars = np.log1p(gmm.covariances_).flatten()
         transformed_weights = logit(gmm.weights_.flatten())
         transformed_n = np.atleast_1d(np.log(self.n[day] / self.max_n))
-
         # Store the transformed parameters
         n_components = len(gmm.means_)
         if n_components == 1:
             features = [transformed_means, transformed_vars, transformed_n]
-
         else:
             features = [transformed_means, transformed_vars, transformed_weights, transformed_n]
-
         # Concatenate the transformed parameters
         return np.concatenate(features)
 
     def inverse_transform(self, features):
-
-        n_components = len(features) // 3 - 1
-
+        # Determine the number of components
+        n_components = (len(features) - 1) // 3
+        n_components = max(1, n_components)
         # Extract the transformed parameters
         transformed_means = features[:n_components]
         transformed_vars = features[n_components:2*n_components]
@@ -80,7 +76,6 @@ class ParamTransformer:
         else:
             transformed_weights = features[2*n_components:-1]
         transformed_n = features[-1]
-
         # Inverse-transform the parameters
         means = transformed_means
         variances = np.expm1(transformed_vars)
@@ -89,9 +84,8 @@ class ParamTransformer:
         else:
             weights = sigmoid(transformed_weights) # Inverse of logit
             weights /= np.sum(weights)  # Normalise the weights
-
+        # Inverse-transform the number of steps
         n = int(round(np.exp(transformed_n) * self.max_n))
-
         # Store the inverse-transformed parameters
         return {
             "means": means,
