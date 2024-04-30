@@ -80,7 +80,7 @@ def main():
         print(f"#{i}: AP{idx[i]} {ap} with performance {performance[idx[i]]:.2f}")
     # Plot the runs
     plot.runs(*runs)
-    print("running the assistant model")
+    # print("running the assistant model")
     af_run = test_assistant_model(
         action_plans=action_plans,
         log_prior_position=LOG_PRIOR,
@@ -106,7 +106,3 @@ def main():
 if __name__ == "__main__":
 
     main()
-
-
-
-

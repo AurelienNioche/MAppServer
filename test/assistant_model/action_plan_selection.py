@@ -1,5 +1,6 @@
 import numpy as np
-from test.config.config import LOG_AT_EACH_TIMESTEP
+from test.config.config import LOG_AT_EACH_TIMESTEP, \
+    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER
 
 
 def normalize_last_dim(alpha):
@@ -50,7 +51,7 @@ def select_action_plan(
     # TODO: Check if this is the correct way to set the seed
     rng = np.random.default_rng(seed)
     print("-"*80)
-    print(f"Assistant: t_idx={t_idx:02} v_idx={v_idx:02} pos_idx={pos_idx:02} rng state {rng.bit_generator.state['state']['state']}")
+    print(f"Assistant: t_idx={t_idx:02} v_idx={v_idx:02} pos_idx={pos_idx:02} n obs {int(np.sum(alpha_atvv) - alpha_atvv.size*ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER):02} rng state {rng.bit_generator.state['state']['state']}")
     # Get the dimensions of the action plans
     n_action_plan, h = action_plans.shape
     # Initialize action plan values

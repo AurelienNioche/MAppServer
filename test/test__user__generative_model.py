@@ -94,13 +94,14 @@ class FakeUser(websocket_client.DefaultUser):
         # Get timestep index
         t_idx = get_timestep(now, timestep)
         if t_idx == 0 and not self.init_done:
-            steps = [{
-                    "ts": now.timestamp()*1000,
-                    "step_midnight": 0,
-                    "android_id": self.android_id
-                }]
-            # print(f"Android ID {self.android_id} - Day {(self.now().date() - self.starting_date).days} - Timestep {t_idx} -  {step_midnight} steps done.")
-            self.android_id += 1
+            # steps = [{
+            #         "ts": now.timestamp()*1000,
+            #         "step_midnight": 0,
+            #         "android_id": self.android_id
+            #     }]
+            # # print(f"Android ID {self.android_id} - Day {(self.now().date() - self.starting_date).days} - Timestep {t_idx} -  {step_midnight} steps done.")
+            # self.android_id += 1
+            steps = []
             to_return = {
                 "now": now.strftime("%d/%m/%Y %H:%M:%S"),
                 "steps": json.dumps(steps),
@@ -117,6 +118,7 @@ class FakeUser(websocket_client.DefaultUser):
             to_return = {
                 "now": now.strftime("%d/%m/%Y %H:%M:%S"),
                 "steps": json.dumps(steps),
+                "skipAssistantUpdate": True
             }
             # Note to future self: action plan is not used here
             if LOG_AT_EACH_TIMESTEP:
@@ -161,6 +163,7 @@ class FakeUser(websocket_client.DefaultUser):
         to_return = {
             "now": now.strftime("%d/%m/%Y %H:%M:%S"),
             "steps": json.dumps(steps),
+            "skipAssistantUpdate": True
         }
         return to_return
 

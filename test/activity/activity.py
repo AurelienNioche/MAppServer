@@ -52,6 +52,7 @@ def build_pseudo_count_matrix(
         dt_min: datetime = None,
         dt_max: datetime = None,
         n_action: int = 2,
+        skip_empty_days: bool = False
 ) -> np.ndarray:
 
     """Compute the alpha matrix (pseudo-counts) for the transition matrix"""
@@ -71,6 +72,10 @@ def build_pseudo_count_matrix(
     dt = dt_min_sec if dt_min is not None else 0
     # Loop over the days
     for day in range(activity.shape[0]):
+        # TODO: For now, we're skipping days with no activity,
+        #   but we might want to change that in the future
+        if skip_empty_days and activity[day].sum() == 0:
+            continue
         # Loop over the timesteps
         for t in range(timestep.size - 1):
             # If the timestamp is outside the range, skip (just increment the time)
@@ -207,6 +212,7 @@ def extract_step_events(
     all_dt = datetimes
 
     min_date = all_dt.min().date()
+    # Get days as indexes with 0 being the first day, 1 being the second day, etc.
     days = np.asarray([(dt.date() - min_date).days for dt in all_dt])
     uniq_days = np.unique(days)
     all_timestamp = np.asarray([

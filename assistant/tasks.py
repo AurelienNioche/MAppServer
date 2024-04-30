@@ -45,7 +45,7 @@ def read_activities_and_extract_step_events(
     step_events = extract_step_events(
         step_counts=all_pos,
         datetimes=pd.to_datetime(dt),
-        remove_empty_days=False
+        remove_empty_days=False  # Keep the empty days
     )
     if len(step_events) == 0:
         return step_events, uniq_days, None, None
@@ -114,42 +114,38 @@ def update_challenges_based_on_action_plan(action_plan, now, later_challenges, t
 
 def update_beliefs_and_challenges(
         u: User,
-        now: str = None
+        now: str = None,
+        skip_assistant_update: bool = False,
 ):
     """
     Update the beliefs concerning the user and update the challenges accordingly
     """
+    if skip_assistant_update:
+        return
     if now is None:
-        print("I used default option for `now`")
+        # print("I used default option for `now`")
         now = datetime.now(tz=timezone(TIME_ZONE))
     else:
-        print("now", now)
+        # print("now", now)
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
-    print("now", now)
-
-    t_idx = get_timestep(now, timestep=TIMESTEP)
-    # TODO: Check if it is what we want in the future - but nae bother, no future!
-    if t_idx > 0:
-        print(f"t_idx={t_idx} Not at the start of the day, exiting")
-        return
+    print("now from tasks", now)
 
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
     if first_challenge is None:
-        print("No future challenges, exiting")
+        # print("No future challenges, exiting")
         return
 
     step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
-    # print("step_events", step_events)
-    if len(step_events) > 0:
+    if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
+        print("step_events more than 0")
         activity = convert_timesteps_into_activity_level(
             step_events=step_events,
             timestep=TIMESTEP
         )
     else:
-        activity = np.empty((len(dates), TIMESTEP.size - 1))
-        assert activity.size == 0, "Activity should be empty"
-
+        activity = np.empty((0, TIMESTEP.size - 1))
+        # assert activity.size == 0, "Activity should be empty"
 
     pos_idx, v_idx, t_idx = get_current_position_and_velocity(
         u=u,
@@ -165,11 +161,14 @@ def update_beliefs_and_challenges(
     )
     actions = np.atleast_2d(actions)
 
-    print("actions", actions.shape)
-    print("activity", activity.shape)
-    if dt_min is not None:
-        print("dt_min", local(dt_min))
-        print("dt_max", local(dt_max))
+    # print("actions", actions.shape)
+    # print("activity", activity.shape)
+    # if dt_min is not None:
+    #     pass
+        # print("dt_min", local(dt_min))
+        # print("dt_max", local(dt_max))
+
+    print("activity", activity)
 
     alpha_tvv = build_pseudo_count_matrix(
         activity=activity,
