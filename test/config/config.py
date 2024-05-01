@@ -40,10 +40,10 @@ N_CHALLENGE = 3
 USER = "11AV"
 DATA_FOLDER = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + "/data"
 N_TIMESTEP = 24
-N_POSITION = 50
+N_POSITION = 100
 TIMESTEP = np.linspace(0, 1, N_TIMESTEP)
-POSITION = np.linspace(0, 20000, N_POSITION)
-SIGMA_POSITION_TRANSITION = 10.0
+POSITION = np.linspace(0, 40000, N_POSITION)
+SIGMA_POSITION_TRANSITION = 30.0
 N_VELOCITY = 30
 # velocity = np.concatenate((np.zeros(1), np.geomspace(2, np.max(combined)+1, n_velocity-1)))
 VELOCITY = np.linspace(0, 12000, N_VELOCITY)
@@ -85,4 +85,6 @@ INIT_V_IDX = np.absolute(VELOCITY).argmin()    # Something close to 0
 # print ---------------------------------
 
 LOG_AT_EACH_EPISODE = True
-LOG_AT_EACH_TIMESTEP = True
+LOG_AT_EACH_TIMESTEP = False
+LOG_PSEUDO_COUNT_UPDATE = False
+LOG_ACTIVITY = False

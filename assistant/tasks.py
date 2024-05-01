@@ -11,7 +11,7 @@ from assistant.models import User
 from test.config.config import (
     TIMESTEP, POSITION, VELOCITY, SIGMA_POSITION_TRANSITION, GAMMA, LOG_PRIOR,
     HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, SEED_ASSISTANT,
-    INIT_POS_IDX, INIT_V_IDX
+    INIT_POS_IDX, INIT_V_IDX, LOG_PSEUDO_COUNT_UPDATE
 )
 from test.test__generative_model import get_possible_action_plans
 from test.assistant_model.action_plan_selection import select_action_plan
@@ -128,7 +128,7 @@ def update_beliefs_and_challenges(
     else:
         # print("now", now)
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
-    print("now from tasks", now)
+    # print("now from tasks", now)
 
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
@@ -138,13 +138,14 @@ def update_beliefs_and_challenges(
 
     step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
     if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
-        print("step_events more than 0")
+        # print("step_events more than 0")
         activity = convert_timesteps_into_activity_level(
             step_events=step_events,
-            timestep=TIMESTEP
+            timestep=TIMESTEP,
+            log_update_count=LOG_PSEUDO_COUNT_UPDATE
         )
     else:
-        activity = np.empty((0, TIMESTEP.size - 1))
+        activity = np.empty((0, TIMESTEP.size))
         # assert activity.size == 0, "Activity should be empty"
 
     pos_idx, v_idx, t_idx = get_current_position_and_velocity(
@@ -168,15 +169,17 @@ def update_beliefs_and_challenges(
         # print("dt_min", local(dt_min))
         # print("dt_max", local(dt_max))
 
-    print("activity", activity)
-
+    # print("activity", activity)
+    # print("va te faire enculer", LOG_PSEUDO_COUNT_UPDATE)
     alpha_tvv = build_pseudo_count_matrix(
         activity=activity,
         actions=actions,
         timestep=TIMESTEP,
         velocity=VELOCITY,
         jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
-        dt_min=dt_min, dt_max=dt_max)
+        dt_min=dt_min, dt_max=dt_max,
+        log_update_count=LOG_PSEUDO_COUNT_UPDATE
+    )
 
     transition_position_pvp = build_position_transition_matrix(
         position=POSITION,

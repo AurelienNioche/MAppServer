@@ -136,7 +136,8 @@ def generative_model(
         activity=observed_activity,
         timestep=timestep,
         velocity=velocity,
-        jitter=pseudo_count_jitter
+        jitter=pseudo_count_jitter,
+        log_update_count=False
     )
 
     # Compute expected probabilities

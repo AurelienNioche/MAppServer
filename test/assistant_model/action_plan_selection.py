@@ -16,6 +16,7 @@ def make_a_step(
         transition_position_pvp,
         rng
 ):
+    # print("rng state", rng.bit_generator.state['state']['state'])
     # Pick new action
     action = policy[t_idx]
     # Draw new velocity

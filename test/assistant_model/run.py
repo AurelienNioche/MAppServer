@@ -1,7 +1,9 @@
 import numpy as np
 from tqdm import tqdm
 
-from test.config.config import INIT_POS_IDX, INIT_V_IDX, LOG_AT_EACH_EPISODE, LOG_AT_EACH_TIMESTEP
+from test.config.config import (
+    INIT_POS_IDX, INIT_V_IDX, LOG_AT_EACH_EPISODE, LOG_PSEUDO_COUNT_UPDATE
+)
 from .action_plan_selection import select_action_plan, normalize_last_dim, make_a_step
 
 
@@ -59,7 +61,7 @@ def test_assistant_model(
             # Select the best action plan ('policy')
             policy = action_plans[action_plan_idx]
             if LOG_AT_EACH_EPISODE:
-                print(f"restart #{sample} - episode #{ep_idx} - policy: {action_plan_idx}")
+                print(f"restart #{sample} - episode #{ep_idx} - policy #{action_plan_idx}")
                 print("-"*80)
             # Run the policy
             pos_idx = INIT_POS_IDX
@@ -74,6 +76,8 @@ def test_assistant_model(
                     rng=rng
                 )
                 # Update pseudo-counts
+                if LOG_PSEUDO_COUNT_UPDATE and ep_idx < n_episodes - 1:
+                    print("action", action, "day", ep_idx, "t_idx", t_idx, "v_idx", v_idx, "new_v_idx", new_v_idx)
                 alpha_atvv[action, t_idx, v_idx, new_v_idx] += 1
                 # Replace old values with the new value
                 v_idx = new_v_idx

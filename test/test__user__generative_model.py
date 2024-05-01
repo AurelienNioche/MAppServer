@@ -31,6 +31,8 @@ from test.config.config import (
     LOG_AT_EACH_TIMESTEP, LOG_AT_EACH_EPISODE
 )
 
+from test.activity.activity import activity_to_velocity_index
+
 
 class FakeUser(websocket_client.DefaultUser):
     def __init__(self):
@@ -107,8 +109,8 @@ class FakeUser(websocket_client.DefaultUser):
                 "steps": json.dumps(steps),
             }
             # Note to future self: action plan is not used here
-            if LOG_AT_EACH_TIMESTEP:
-                print("t_idx", t_idx, "a: NOT YET v_idx", v_idx, "pos_idx", pos_idx)
+            # if LOG_AT_EACH_TIMESTEP:
+            #    print("t_idx", t_idx, "a: NOT YET v_idx", v_idx, "pos_idx", pos_idx)
             # Note: we should NOT increment time here because we need an action plan for
             # transitioning to the next timestep
             self.init_done = True
@@ -121,8 +123,8 @@ class FakeUser(websocket_client.DefaultUser):
                 "skipAssistantUpdate": True
             }
             # Note to future self: action plan is not used here
-            if LOG_AT_EACH_TIMESTEP:
-                print("t_idx", t_idx, "a", 0, "v_idx", v_idx, "pos_idx", pos_idx, )
+            # if LOG_AT_EACH_TIMESTEP:
+            #    print("t_idx", t_idx, "a", 0, "v_idx", v_idx, "pos_idx", pos_idx, )
             self.increment_time()
             return to_return
         # Select action plan
@@ -130,6 +132,14 @@ class FakeUser(websocket_client.DefaultUser):
             u=self.u, timestep=timestep,
             now=now
         )
+        # Log policy
+        if LOG_AT_EACH_EPISODE and t_idx == 0:
+            n_days = (now.date() - self.starting_date).days
+            # {self.position[self.pos_idx]} steps done.
+            action_plan_idx = np.where((self.action_plans == action_plan).all(axis=1))[0][0]
+            print("-" * 100)
+            print(f"restart #0 - episode #{n_days} - policy #{action_plan_idx}")
+            print("-" * 100)
         # We mean a Markovian step
         action, new_v_idx, new_pos_idx = make_a_step(
             t_idx=t_idx, policy=action_plan,
@@ -144,9 +154,19 @@ class FakeUser(websocket_client.DefaultUser):
         self.pos_idx = new_pos_idx
         # Increment time
         self.increment_time()
+
+        step_midnight = position[self.pos_idx] # + 1e3
+        #
+        # bins = velocity # np.concatenate((velocity, np.full(1, np.inf)))
+        # # Clip the activity to the bins
+        # v = np.clip(step_midnight, bins[0], bins[-1])
+        # v = np.digitize(v, bins, right=True) # - 1
+        # print(v == self.v_idx)
+        # assert
+
         steps = [{
                 "ts": self.now().timestamp()*1000,  # equivalent of t_idx + 1
-                "step_midnight": position[self.pos_idx],
+                "step_midnight": step_midnight,
                 "android_id": self.android_id
         }]
         self.android_id += 1
@@ -170,11 +190,6 @@ class FakeUser(websocket_client.DefaultUser):
     def increment_time(self):
         new_now = self._now + timedelta(hours=1)
         if new_now > self.now().replace(hour=23, minute=59):
-            n_days = (self.now().date() - self.starting_date).days
-
-            ap = extract_actions(u=self.u, timestep=self.timestep, now=self.now())
-            index = np.where((self.action_plans == ap).all(axis=1))[0][0]
-            print(f"Day #{n_days}: {self.position[self.pos_idx]} steps done. Policy {index}")
             # difference = self.now() - datetime.combine(self.starting_date, time(), tzinfo=self.now().tzinfo)
             # print(f"day # {difference.days} - {self.position[self.pos_idx]} steps done.")
             new_now = new_now.replace(hour=0, minute=0)
@@ -189,7 +204,7 @@ class FakeUser(websocket_client.DefaultUser):
 
 
 def main():
-    u = creation.create_test_user(
+    creation.create_test_user(
         challenge_accepted=True,
         starting_date=STARTING_DATE,
         n_day=N_DAY,
@@ -208,17 +223,18 @@ def main():
     fake_user = FakeUser()
     websocket_client.run_bot(url=URL, user=fake_user)
     print("-" * 100)
-    actions_taken = extract_actions(
-        u=u, timestep=TIMESTEP)
-    action_plans = get_possible_action_plans(
-        challenges=u.challenge_set.order_by("dt_begin"),
-        timestep=TIMESTEP
-    )
-    actions_taken = np.atleast_2d(actions_taken)
-    for i, actions in enumerate(actions_taken):
-        row_index = np.where((action_plans == actions).all(axis=1))[0][0]
-        if LOG_AT_EACH_EPISODE:
-            print(f"episode #{i} - policy: {row_index}")
+    # TODO: Keep the code below for analysis
+    # actions_taken = extract_actions(
+    #     u=u, timestep=TIMESTEP)
+    # action_plans = get_possible_action_plans(
+    #     challenges=u.challenge_set.order_by("dt_begin"),
+    #     timestep=TIMESTEP
+    # )
+    # actions_taken = np.atleast_2d(actions_taken)
+    # for i, actions in enumerate(actions_taken):
+    #     row_index = np.where((action_plans == actions).all(axis=1))[0][0]
+    #     if LOG_AT_EACH_EPISODE:
+    #         print(f"episode #{i} - policy: {row_index}")
     # for c in User.objects.filter(username=USERNAME).first().challenge_set.order_by("dt_begin"):
     #     print(c.dt_begin.astimezone(tz(TIME_ZONE)))
 
