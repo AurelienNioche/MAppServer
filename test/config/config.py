@@ -60,9 +60,9 @@ SEED_GENERATIVE_MODEL = 42
 # Parameters for the assistant model
 LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
 # Number of new instances of the (same) model
-N_RESTART = 1
+N_RESTART = 10
 # Number of episodes to run this instance of model for
-N_EPISODES = 2
+N_EPISODES = 100
 # Seed
 SEED_ASSISTANT = 42
 

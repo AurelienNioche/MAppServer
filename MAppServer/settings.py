@@ -42,7 +42,7 @@ ALLOWED_HOSTS = [
 
 INSTALLED_APPS = [
     'assistant.apps.AssistantConfig',
-    'django_celery_beat',
+     # 'django_celery_beat',
     'reception_desk.apps.ReceptionDeskConfig',
     'user.apps.UserConfig',
     'channels',

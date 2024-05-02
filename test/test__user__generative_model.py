@@ -1,22 +1,27 @@
 import os
-
-from test.assistant_model.action_plan_selection import \
-    make_a_step
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
+from assistant.tasks import \
+    read_activities_and_extract_step_events
+from test.assistant_model.action_plan_selection import \
+    make_a_step
+from test.plot import \
+    plot
+
 from datetime import timedelta
 import json
 import numpy as np
+from pytz import timezone as tz
 
 from MAppServer.settings import TIME_ZONE
 from user.models import User
 from test.user_simulation import creation
 from test.user_simulation import websocket_client
 from test.generative_model.core import generative_model
-from test.activity.activity import get_timestep, extract_actions
+from test.activity.activity import get_timestep, extract_actions, \
+    convert_timesteps_into_activity_level
 
 from assistant_model.action_plan_generation import get_possible_action_plans
 from assistant_model.action_plan_generation import get_challenges
@@ -28,10 +33,8 @@ from test.config.config import (
     USER, DATA_FOLDER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS,
     GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
     SIGMA_POSITION_TRANSITION, SEED_GENERATIVE_MODEL, SEED_RUN,
-    LOG_AT_EACH_TIMESTEP, LOG_AT_EACH_EPISODE
-)
-
-from test.activity.activity import activity_to_velocity_index
+    LOG_AT_EACH_EPISODE,
+    LOG_PSEUDO_COUNT_UPDATE)
 
 
 class FakeUser(websocket_client.DefaultUser):
@@ -203,6 +206,8 @@ class FakeUser(websocket_client.DefaultUser):
         return (self.now().date() - self.starting_date) >= timedelta(days=N_DAY)
 
 
+
+
 def main():
     creation.create_test_user(
         challenge_accepted=True,
@@ -223,7 +228,18 @@ def main():
     fake_user = FakeUser()
     websocket_client.run_bot(url=URL, user=fake_user)
     print("-" * 100)
+
     # TODO: Keep the code below for analysis
+    u = User.objects.filter(username=USERNAME).first()
+    step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
+    # if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
+        # print("step_events more than 0")
+    activity = convert_timesteps_into_activity_level(
+        step_events=step_events,
+        timestep=TIMESTEP,
+        log_update_count=LOG_PSEUDO_COUNT_UPDATE
+    )
+    plot.plot_day(activity[-1])
     # actions_taken = extract_actions(
     #     u=u, timestep=TIMESTEP)
     # action_plans = get_possible_action_plans(

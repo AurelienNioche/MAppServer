@@ -1,7 +1,6 @@
 import os
 
-from test.assistant_model.run import \
-    test_assistant_model
+from test.assistant_model.run import test_assistant_model
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE",
                       "MAppServer.settings")

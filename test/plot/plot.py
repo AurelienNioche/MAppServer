@@ -283,3 +283,17 @@ def plot_af(run):
             # Add a label to the x-axis
             ax.set_xlabel("action plan")
     plt.show()
+
+
+def plot_day(day_activity, figsize=(4, 3), linewidth=2):
+    fig, ax = plt.subplots(nrows=1, figsize=figsize)
+
+    x = np.linspace(0, 1, len(day_activity))
+    ax.plot(
+        x, day_activity, color=f"C0", linewidth=linewidth
+    )
+    ax.set_ylabel("position")
+    ax.set_xlabel("time")
+
+    fig.tight_layout()
+    plt.show()
