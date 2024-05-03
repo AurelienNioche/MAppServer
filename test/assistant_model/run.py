@@ -40,7 +40,7 @@ def test_assistant_model(
         # Initialize alpha
         alpha_atvv = np.zeros((n_action, timestep.size-1, velocity.size, velocity.size)) + alpha_jitter
         epoch = 0
-        for ep_idx in range(n_episodes):
+        for ep_idx in tqdm(range(n_episodes)):
             # Select action plan
             action_plan_idx, pr_value, ep_value = select_action_plan(
                 log_prior_position=log_prior_position,

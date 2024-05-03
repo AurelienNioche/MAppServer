@@ -11,7 +11,7 @@ from pytz import timezone as tz
 
 from MAppServer.settings import TIME_ZONE
 from user.models import User
-from test.config.config import LOG_PSEUDO_COUNT_UPDATE, LOG_ACTIVITY
+from test.config.config import LOG_ACTIVITY
 
 
 SECONDS_IN_DAY = 86400
@@ -26,21 +26,27 @@ def normalize_last_dim(alpha):
 def convert_timesteps_into_activity_level(
         step_events: list,
         timestep: np.ndarray,
-        log_update_count: bool = False
-) -> np.ndarray:
+        log_update_count: bool = False,
+        return_cum_steps: bool = False
+) -> np.ndarray or tuple[np.ndarray, np.ndarray]:
     """Convert the timesteps into activity level
     by computing the "derivative of the cumulative steps"
     (one day, this description will make sense)
     """
     deriv_cum_steps = np.zeros((len(step_events), timestep.size), dtype=float)
+    cum_steps = np.zeros_like(deriv_cum_steps)
     for idx_day, step_events_day in enumerate(step_events):
         cum_steps_day = np.sum(step_events_day <= timestep[:, None], axis=1)
         # deriv_cum_steps_day = np.gradient(cum_steps_day, timestep+1)
         # deriv_cum_steps_day /= timestep.size-1
+        cum_steps[idx_day] = cum_steps_day
         deriv_cum_steps[idx_day, 1:] = cum_steps_day[1:] - cum_steps_day[:-1]
         if log_update_count:
             print("day", idx_day, "cum_steps", cum_steps_day)
-    return deriv_cum_steps
+    if return_cum_steps:
+        return deriv_cum_steps, cum_steps
+    else:
+        return deriv_cum_steps
 
 
 def activity_to_velocity_index(activity, velocity, log_update_count=False):

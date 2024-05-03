@@ -1,7 +1,13 @@
+#%% Imports
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
+
+import tqdm
+from datetime import timedelta
+import json
+import numpy as np
 
 from assistant.tasks import \
     read_activities_and_extract_step_events
@@ -9,11 +15,6 @@ from test.assistant_model.action_plan_selection import \
     make_a_step
 from test.plot import \
     plot
-
-from datetime import timedelta
-import json
-import numpy as np
-from pytz import timezone as tz
 
 from MAppServer.settings import TIME_ZONE
 from user.models import User
@@ -23,8 +24,8 @@ from test.generative_model.core import generative_model
 from test.activity.activity import get_timestep, extract_actions, \
     convert_timesteps_into_activity_level
 
-from assistant_model.action_plan_generation import get_possible_action_plans
-from assistant_model.action_plan_generation import get_challenges
+from test.assistant_model.action_plan_generation import get_possible_action_plans
+from test.assistant_model.action_plan_generation import get_challenges
 
 from test.config.config import (
     TIMESTEP, POSITION, VELOCITY, N_DAY, N_CHALLENGE, OFFER_WINDOW, OBJECTIVE, AMOUNT,
@@ -82,6 +83,8 @@ class FakeUser(websocket_client.DefaultUser):
         self.u = User.objects.filter(username=self.username).first()
         self.init_done = False
 
+        self.progress_bar = tqdm.tqdm(total=N_DAY, desc="Day progression")
+
     def now(self):
         return self._now
 
@@ -135,14 +138,18 @@ class FakeUser(websocket_client.DefaultUser):
             u=self.u, timestep=timestep,
             now=now
         )
-        # Log policy
+        # Log stuff
+        # Compute the number of day
+        n_days = (now.date() - self.starting_date).days
         if LOG_AT_EACH_EPISODE and t_idx == 0:
-            n_days = (now.date() - self.starting_date).days
             # {self.position[self.pos_idx]} steps done.
             action_plan_idx = np.where((self.action_plans == action_plan).all(axis=1))[0][0]
             print("-" * 100)
             print(f"restart #0 - episode #{n_days} - policy #{action_plan_idx}")
             print("-" * 100)
+        elif n_days > 0 and t_idx == 0:
+            self.progress_bar.update(1)
+
         # We mean a Markovian step
         action, new_v_idx, new_pos_idx = make_a_step(
             t_idx=t_idx, policy=action_plan,
@@ -203,8 +210,10 @@ class FakeUser(websocket_client.DefaultUser):
         self._now = new_now
 
     def done(self):
-        return (self.now().date() - self.starting_date) >= timedelta(days=N_DAY)
-
+        done = (self.now().date() - self.starting_date) >= timedelta(days=N_DAY)
+        if done:
+            self.progress_bar.close()
+        return done
 
 
 
@@ -230,30 +239,36 @@ def main():
     print("-" * 100)
 
     # TODO: Keep the code below for analysis
-    u = User.objects.filter(username=USERNAME).first()
-    step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
+    # u = User.objects.filter(username=USERNAME).first()
+    # step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
     # if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
         # print("step_events more than 0")
-    activity = convert_timesteps_into_activity_level(
-        step_events=step_events,
-        timestep=TIMESTEP,
-        log_update_count=LOG_PSEUDO_COUNT_UPDATE
-    )
-    plot.plot_day(activity[-1])
-    # actions_taken = extract_actions(
-    #     u=u, timestep=TIMESTEP)
-    # action_plans = get_possible_action_plans(
-    #     challenges=u.challenge_set.order_by("dt_begin"),
-    #     timestep=TIMESTEP
+    # activity = convert_timesteps_into_activity_level(
+    #     step_events=step_events,
+    #     timestep=TIMESTEP,
+    #     log_update_count=LOG_PSEUDO_COUNT_UPDATE
     # )
-    # actions_taken = np.atleast_2d(actions_taken)
-    # for i, actions in enumerate(actions_taken):
-    #     row_index = np.where((action_plans == actions).all(axis=1))[0][0]
-    #     if LOG_AT_EACH_EPISODE:
-    #         print(f"episode #{i} - policy: {row_index}")
-    # for c in User.objects.filter(username=USERNAME).first().challenge_set.order_by("dt_begin"):
-    #     print(c.dt_begin.astimezone(tz(TIME_ZONE)))
+    # return activity
 
+# if __name__ == "__main__":
+#     main()
 
-if __name__ == "__main__":
-    main()
+#%%
+main()
+u = User.objects.filter(username=USERNAME).first()
+step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
+    # if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
+# print("step_events more than 0")
+#%%
+deriv_cum_steps, cum_steps = convert_timesteps_into_activity_level(
+    step_events=step_events,
+    timestep=TIMESTEP,
+    log_update_count=LOG_PSEUDO_COUNT_UPDATE,
+    return_cum_steps=True
+)
+af_run = {
+    "position": cum_steps
+}
+print(cum_steps.shape)
+#%%
+plot.plot_day_progression(af_run)

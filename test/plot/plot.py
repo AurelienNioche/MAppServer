@@ -2,6 +2,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from scipy.special import logit
+import pandas as pd
+import seaborn as sns
 
 
 def plot_step_transformations(step_events, transformed_all_steps, untransformed_all_steps):
@@ -297,3 +299,39 @@ def plot_day(day_activity, figsize=(4, 3), linewidth=2):
 
     fig.tight_layout()
     plt.show()
+
+
+def plot_day_progression(af_run):
+    """Plot the progression of the day"""
+    x = af_run["position"]
+    # Create a MultiIndex
+    if len(x.shape) == 2:
+        index = pd.MultiIndex.from_product(
+            [range(i) for i in x.shape],
+            names=['episode', 'timestep'])
+        df = pd.DataFrame({'position': x.flatten()}, index=index)
+        # fig, ax = plt.subplots(figsize=(10, 6))
+        sns.relplot(
+            data=df,
+            x='timestep',
+            y='position',
+            hue='episode',
+            kind='line')
+        plt.show()
+    elif len(x.shape) == 3:
+        index = pd.MultiIndex.from_product(
+            [range(i) for i in x.shape],
+            names=['restart', 'episode', 'timestep'])
+         # Flatten the 3D numpy array to a 1D array and create the DataFrame
+        df = pd.DataFrame({'position': x.flatten()}, index=index)
+        # fig, ax = plt.subplots(figsize=(10, 6))
+        sns.relplot(
+            data=df.query("restart == 0"),
+            x='timestep',
+            y='position',
+            hue='episode',
+            kind='line')
+        plt.show()
+    else:
+        raise ValueError(f"Expected a 2D or 3D array, got {x.shape}")
+

@@ -1,4 +1,6 @@
+#%%
 import os
+import pandas as pd
 
 from test.assistant_model.run import test_assistant_model
 
@@ -99,9 +101,9 @@ def main():
     runs.append(af_run)
     # Plot the runs
     plot.runs(*runs)
-    # plot.plot_af(af_run)
+    # Plot the day progression
+    plot.plot_day_progression(af_run)
 
 
 if __name__ == "__main__":
-
     main()

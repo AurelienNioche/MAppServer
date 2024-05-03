@@ -228,4 +228,4 @@ def update_beliefs_and_challenges(
         later_challenges=later_challenges,
         timestep=TIMESTEP
     )
-    print("-" * 80)
+    # print("-" * 80)

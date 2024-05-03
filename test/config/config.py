@@ -60,9 +60,9 @@ SEED_GENERATIVE_MODEL = 42
 # Parameters for the assistant model
 LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
 # Number of new instances of the (same) model
-N_RESTART = 10
+N_RESTART = 5
 # Number of episodes to run this instance of model for
-N_EPISODES = 100
+N_EPISODES = 400
 # Seed
 SEED_ASSISTANT = 42
 
@@ -84,7 +84,8 @@ INIT_V_IDX = np.absolute(VELOCITY).argmin()    # Something close to 0
 
 # print ---------------------------------
 
-LOG_AT_EACH_EPISODE = True
+LOG_AT_EACH_EPISODE = False
 LOG_AT_EACH_TIMESTEP = False
 LOG_PSEUDO_COUNT_UPDATE = False
 LOG_ACTIVITY = False
+LOG_ASSISTANT_MODEL = False
