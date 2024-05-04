@@ -23,41 +23,30 @@ def normalize_last_dim(alpha):
     return alpha / np.expand_dims(sum_col, axis=-1)
 
 
-def convert_timesteps_into_activity_level(
+def step_events_to_cumulative_steps(
         step_events: list,
         timestep: np.ndarray,
-        log_update_count: bool = False,
-        return_cum_steps: bool = False
+        log_cumulative_steps: bool = False,
 ) -> np.ndarray or tuple[np.ndarray, np.ndarray]:
-    """Convert the timesteps into activity level
-    by computing the "derivative of the cumulative steps"
-    (one day, this description will make sense)
-    """
-    deriv_cum_steps = np.zeros((len(step_events), timestep.size), dtype=float)
-    cum_steps = np.zeros_like(deriv_cum_steps)
+    """Compute the cumulative steps from the step events."""
+    cum_steps = np.zeros((len(step_events), timestep.size), dtype=float)
     for idx_day, step_events_day in enumerate(step_events):
-        cum_steps_day = np.sum(step_events_day <= timestep[:, None], axis=1)
-        # deriv_cum_steps_day = np.gradient(cum_steps_day, timestep+1)
-        # deriv_cum_steps_day /= timestep.size-1
-        cum_steps[idx_day] = cum_steps_day
-        deriv_cum_steps[idx_day, 1:] = cum_steps_day[1:] - cum_steps_day[:-1]
-        if log_update_count:
-            print("day", idx_day, "cum_steps", cum_steps_day)
-    if return_cum_steps:
-        return deriv_cum_steps, cum_steps
-    else:
-        return deriv_cum_steps
+        cum_steps[idx_day] = np.sum(step_events_day <= timestep[:, None], axis=1)
+        # deriv_cum_steps[idx_day, 1:] = cum_steps_day[1:] - cum_steps_day[:-1]
+        if log_cumulative_steps:
+            print("day", idx_day, "cum_steps", cum_steps[idx_day])
+    return cum_steps
 
 
-def activity_to_velocity_index(activity, velocity, log_update_count=False):
+def cum_steps_to_pos_idx(cum_steps, position, log_update_count=False):
     # Add one bin for infinity
     # bins = velocity # np.concatenate((velocity, np.full(1, np.inf)))
     # Clip the activity to the bins
     # drv = np.clip(activity, bins[0], bins[-1])
     # all_v_idx = np.digitize(drv, bins, right=True) # - 1
-    all_v_idx = np.zeros_like(activity, dtype=int)
-    for idx_day, act in enumerate(activity):
-        all_v_idx[idx_day] = np.argmin(np.abs(velocity[:, None] - act), axis=0)
+    all_v_idx = np.zeros_like(cum_steps, dtype=int)
+    for idx_day, act in enumerate(cum_steps):
+        all_v_idx[idx_day] = np.argmin(np.abs(position[:, None] - act), axis=0)
         if log_update_count:
             print("day", idx_day)
             print("act", act)
@@ -71,9 +60,9 @@ def activity_to_velocity_index(activity, velocity, log_update_count=False):
 
 def build_pseudo_count_matrix(
         actions: np.ndarray,
-        activity: np.ndarray,
+        cum_steps: np.ndarray,
         timestep: np.ndarray,
-        velocity: np.ndarray,
+        position: np.ndarray,
         jitter: float,
         dt_min: datetime = None,
         dt_max: datetime = None,
@@ -87,20 +76,20 @@ def build_pseudo_count_matrix(
     dt_max_sec = dt_max.timestamp() if dt_max is not None else SECONDS_IN_DAY
     sec_per_timestep = SECONDS_IN_DAY / timestep.size
     # Get the velocity index for each activity level
-    all_v_idx = activity_to_velocity_index(activity=activity, velocity=velocity, log_update_count=log_update_count)
+    all_idx = cum_steps_to_pos_idx(cum_steps=cum_steps, position=position, log_update_count=log_update_count)
     # Initialize the pseudo-count matrix
-    alpha_atvv = np.zeros((n_action, timestep.size-1, velocity.size, velocity.size))
+    alpha_atvv = np.zeros((n_action, timestep.size - 1, position.size, position.size))
     alpha_atvv += jitter
     # Initialize the time counter
     dt = dt_min_sec if dt_min is not None else 0
     if LOG_ACTIVITY:
-        print("activity", activity.shape)
+        print("activity", cum_steps.shape)
     # Loop over the days
-    for day in range(activity.shape[0]):
-        # TODO: For now, we're skipping days with no activity,
-        #   but we might want to change that in the future
-        if skip_empty_days and activity[day].sum() == 0:
-            continue
+    for day in range(cum_steps.shape[0]):
+        # # TODO: For now, we're skipping days with no activity,
+        # #   but we might want to change that in the future
+        # if skip_empty_days and cum_steps[day].sum() == 0:
+        #     continue
         # Loop over the timesteps
         for t_idx in range(timestep.size - 1):
             # If the timestamp is outside the range, skip (just increment the time)
@@ -110,11 +99,11 @@ def build_pseudo_count_matrix(
                 continue
             # Increment the pseudo-count matrix
             action = actions[day, t_idx]
-            v_idx = all_v_idx[day, t_idx]
-            new_v_idx = all_v_idx[day, t_idx + 1]
+            idx_at_t = all_idx[day, t_idx]
+            idx_at_tp1 = all_idx[day, t_idx + 1]
             if log_update_count:
-                print("action", action, "day", day, "t_idx", t_idx, "v_idx", v_idx, "new_v_idx", new_v_idx)
-            alpha_atvv[action, t_idx, v_idx, new_v_idx] += 1
+                print("action", action, "day", day, "t_idx", t_idx, "pos_idx", idx_at_t, "new_pos_idx", idx_at_tp1)
+            alpha_atvv[action, t_idx, idx_at_t, idx_at_tp1] += 1
             dt += sec_per_timestep
     # Return the pseudo-count matrix
     return alpha_atvv

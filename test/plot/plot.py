@@ -80,21 +80,15 @@ def plot_samples(n_model_types, n_days, timestep, deriv_cum_steps, gen_deriv_cum
 
 
 def runs(*args, figsize=(4, 3)):
-    fig, axes = plt.subplots(nrows=2, figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize)
     for i, r in enumerate(args):
         policy = r["policy"]
         hist_pos = r["position"]
-        hist_vel = r["velocity"]
-
         if len(hist_pos.shape) == 3:
             hist_pos = hist_pos[:, -1, :].copy()  # Take the last learning episode only
-            hist_vel = hist_vel[:, -1, :].copy()  # Take the last learning episode only
-
         label = policy.replace("-", " ").capitalize()
         pos = hist_pos.mean(axis=0)
         pos_disp = hist_pos.std(axis=0)
-        vel = hist_vel.mean(axis=0)
-        vel_disp = hist_vel.std(axis=0)
         x = np.linspace(0, 1, len(pos))
         if label.startswith("Af"):
             label = label.replace("Af", "Active inference -")
@@ -109,19 +103,14 @@ def runs(*args, figsize=(4, 3)):
                 linestyle = "--"
         else:
             linestyle, linewidth = "-", 1
-        axes[0].plot(
+        ax.plot(
             x, pos, color=f"C{i}", label=label, linestyle=linestyle, linewidth=linewidth
         )
-        axes[0].fill_between(
+        ax.fill_between(
             x, pos - pos_disp, pos + pos_disp, alpha=0.1, color=f"C{i}"
         )
-        axes[1].plot(x, vel, color=f"C{i}", linestyle=linestyle, linewidth=linewidth)
-        axes[1].fill_between(
-            x, vel - vel_disp, vel + vel_disp, alpha=0.1, color=f"C{i}"
-        )
-        axes[0].set_ylabel("position")
-        axes[1].set_ylabel("velocity")
-        axes[1].set_xlabel("time")
+        ax.set_ylabel("position")
+        ax.set_xlabel("time")
 
     fig.legend(loc=[0.05, 0.05], fontsize=5)
     fig.tight_layout()

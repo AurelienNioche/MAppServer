@@ -172,7 +172,7 @@ def update_beliefs_and_challenges(
     # print("activity", activity)
     # print("va te faire enculer", LOG_PSEUDO_COUNT_UPDATE)
     alpha_tvv = build_pseudo_count_matrix(
-        activity=activity,
+        cum_steps=activity,
         actions=actions,
         timestep=TIMESTEP,
         velocity=VELOCITY,

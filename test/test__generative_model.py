@@ -27,7 +27,7 @@ from test.config.config import (
 
 
 def main():
-
+    # Generate the challenges
     challenges = get_challenges(
         time_zone=TIME_ZONE,
         challenge_window=CHALLENGE_WINDOW,
@@ -35,41 +35,29 @@ def main():
         n_challenges_per_day=N_CHALLENGE,
         start_time=FIRST_CHALLENGE_OFFER
     )
-
+    # Generate the action plans
     action_plans = get_possible_action_plans(challenges=challenges, timestep=TIMESTEP)
-    # print(f"Generated {len(action_plans)} action plans")
-
-    transition_velocity_atvv, transition_position_pvp = generative_model(
+    # Generate the transition model
+    transition = generative_model(
         action_plans=action_plans,
-        user=USER, data_path=DATA_FOLDER,
-        timestep=TIMESTEP, n_samples=N_SAMPLES,
+        user=USER,
+        data_path=DATA_FOLDER,
+        n_samples=N_SAMPLES,
         child_models_n_components=CHILD_MODELS_N_COMPONENTS,
-        velocity=VELOCITY, pseudo_count_jitter=GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
-        position=POSITION, sigma_transition_position=SIGMA_POSITION_TRANSITION,
+        pseudo_count_jitter=GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
+        timestep=TIMESTEP,
+        position=POSITION,
         seed=SEED_GENERATIVE_MODEL
     )
-    # np.save("action_plans.npy", action_plans)
-    # np.save("timestep.npy", TIMESTEP)
-    # np.save("velocity.npy", VELOCITY)
-    # np.save("position.npy", POSITION)
-    # np.save("transition_velocity_atvv.npy", transition_velocity_atvv)
-    # np.save("transition_position_pvp.npy", transition_position_pvp)
-
     # Run the baseline
     runs = baseline.run(
         action_plans=action_plans,
-        transition_velocity_atvv=transition_velocity_atvv,
-        transition_position_pvp=transition_position_pvp,
-        timestep=TIMESTEP, position=POSITION, velocity=VELOCITY,
+        transition=transition,
+        timestep=TIMESTEP,
+        position=POSITION,
         n_restart=N_RESTART,
         seed=SEED_RUN
     )
-    # pos_when_ap0 = runs[0]["position"]
-    # n_restart, len_pos = pos_when_ap0.shape
-    # for i in range(n_restart):
-    #     print(f"Restart {i}:")
-    #     for j in range(len_pos):
-    #         print(f"Time {j}: a={action_plans[0][j]} pos={pos_when_ap0[i, j]}")
     # Compute performance of each action plan
     performance = [
         np.mean(r["position"][:, -1]) for r in runs
@@ -89,9 +77,7 @@ def main():
         n_episodes=N_EPISODES,
         alpha_jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
         position=POSITION,
-        velocity=VELOCITY,
-        transition_velocity_atvv=transition_velocity_atvv,
-        transition_position_pvp=transition_position_pvp,
+        transition=transition,
         timestep=TIMESTEP,
         n_restart=N_RESTART,
         seed_run=SEED_RUN,

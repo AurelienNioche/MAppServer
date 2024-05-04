@@ -9,13 +9,11 @@ from .action_plan_selection import select_action_plan, normalize_last_dim, make_
 
 def test_assistant_model(
         position,
-        velocity,
         timestep,
         n_episodes,
         n_restart,
         alpha_jitter,
-        transition_velocity_atvv,
-        transition_position_pvp,
+        transition,
         action_plans,
         log_prior_position,
         gamma,
@@ -38,7 +36,10 @@ def test_assistant_model(
         # print(f"sample {sample}")
         # print("-"*80)
         # Initialize alpha
-        alpha_atvv = np.zeros((n_action, timestep.size-1, velocity.size, velocity.size)) + alpha_jitter
+        pseudo_counts = np.zeros((n_action, timestep.size-1, position.size, position.size))
+        # Add jitter
+        # TODO: only in the upper triangle
+        pseudo_counts += alpha_jitter
         epoch = 0
         for ep_idx in tqdm(range(n_episodes)):
             # Select action plan
@@ -46,9 +47,8 @@ def test_assistant_model(
                 log_prior_position=log_prior_position,
                 gamma=gamma,
                 position=position,
-                velocity=velocity,
-                alpha_atvv=alpha_atvv,
-                transition_position_pvp=transition_position_pvp,
+                alpha_atvv=pseudo_counts,
+                transition=transition,
                 v_idx=INIT_V_IDX,
                 pos_idx=INIT_POS_IDX,
                 t_idx=0,
@@ -78,7 +78,7 @@ def test_assistant_model(
                 # Update pseudo-counts
                 if LOG_PSEUDO_COUNT_UPDATE and ep_idx < n_episodes - 1:
                     print("action", action, "day", ep_idx, "t_idx", t_idx, "v_idx", v_idx, "new_v_idx", new_v_idx)
-                alpha_atvv[action, t_idx, v_idx, new_v_idx] += 1
+                pseudo_counts[action, t_idx, v_idx, new_v_idx] += 1
                 # Replace old values with the new value
                 v_idx = new_v_idx
                 pos_idx = new_pos_idx
@@ -86,7 +86,7 @@ def test_assistant_model(
                 hist_pos[sample, ep_idx, t_idx] = position[pos_idx]
                 hist_vel[sample, ep_idx, t_idx] = velocity[v_idx]
                 # Log
-                error = np.mean(np.absolute(transition_velocity_atvv - normalize_last_dim(alpha_atvv)))
+                error = np.mean(np.absolute(transition_velocity_atvv - normalize_last_dim(pseudo_counts)))
                 hist_err[sample, epoch] = error
             epoch += 1
     return {

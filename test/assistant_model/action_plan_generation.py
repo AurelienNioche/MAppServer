@@ -57,7 +57,7 @@ def get_possible_action_plans(
         u: User = None
 ) -> np.ndarray or tuple:
 
-    h = timestep.size - 1
+    h = timestep.size
 
     strategies = []
     related_timesteps = []
