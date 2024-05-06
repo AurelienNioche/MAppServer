@@ -26,12 +26,15 @@ def generate_observations(
 ) -> (np.ndarray, np.ndarray):
 
     # First compute the pseudo-derivative
-    steps = np.concatenate((cum_steps[:, 0:1], np.diff(cum_steps, axis=1)), axis=1)
+    diff_cum_steps = np.diff(cum_steps, axis=1)
+    cum_steps_at_t0 = cum_steps[:, 0][:, np.newaxis]
+    steps = np.concatenate((cum_steps_at_t0, diff_cum_steps), axis=1)
     # Then add the nudge effect
     rng = np.random.default_rng(seed)
     idx = rng.integers(action_plans.shape[0], size=steps.shape[0])
     actions = action_plans[idx]
-    steps[:] += actions * nudge_effect[:]
+    action_effect = actions * nudge_effect[:]
+    steps[:, 1:] += action_effect
     steps[steps < 0] = 0  # No negative steps
     # Then re-compute the cumulative sum
     cum_steps = np.cumsum(steps, axis=1)

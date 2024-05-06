@@ -15,11 +15,11 @@ def run(
     n_timestep, n_position = timestep.size, position.size
     runs = []
     for i_pol, policy in enumerate(action_plans):
-        hist_pos = np.zeros((n_restart, timestep.size - 1))
+        hist_pos = np.zeros((n_restart, timestep.size))
         hist_vel = np.zeros_like(hist_pos)
         for sample in range(n_restart):
             pos_idx = np.absolute(position).argmin()  # Something close to 0
-            for t_idx in range(timestep.size - 1):
+            for t_idx in range(timestep.size):
                 a = policy[t_idx]
                 pos_idx = rng.choice(
                     np.arange(n_position),

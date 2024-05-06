@@ -5,7 +5,6 @@ application = get_wsgi_application()
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 from datetime import datetime, time, timedelta
 from pytz import timezone as tz
 
@@ -27,11 +26,11 @@ def step_events_to_cumulative_steps(
         step_events: list,
         timestep: np.ndarray,
         log_cumulative_steps: bool = False,
-) -> np.ndarray or tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """Compute the cumulative steps from the step events."""
-    cum_steps = np.zeros((len(step_events), timestep.size), dtype=float)
+    cum_steps = np.zeros((len(step_events), timestep.size+1), dtype=float)
     for idx_day, step_events_day in enumerate(step_events):
-        cum_steps[idx_day] = np.sum(step_events_day <= timestep[:, None], axis=1)
+        cum_steps[idx_day] = np.concatenate((np.zeros(1, dtype=int), np.sum(step_events_day <= timestep[:, None], axis=1)))
         # deriv_cum_steps[idx_day, 1:] = cum_steps_day[1:] - cum_steps_day[:-1]
         if log_cumulative_steps:
             print("day", idx_day, "cum_steps", cum_steps[idx_day])
@@ -67,7 +66,6 @@ def build_pseudo_count_matrix(
         dt_min: datetime = None,
         dt_max: datetime = None,
         n_action: int = 2,
-        skip_empty_days: bool = False,
         log_update_count: bool = False
 ) -> np.ndarray:
     """Compute the alpha matrix (pseudo-counts) for the transition matrix."""
@@ -78,7 +76,7 @@ def build_pseudo_count_matrix(
     # Get the velocity index for each activity level
     all_idx = cum_steps_to_pos_idx(cum_steps=cum_steps, position=position, log_update_count=log_update_count)
     # Initialize the pseudo-count matrix
-    alpha_atvv = np.zeros((n_action, timestep.size - 1, position.size, position.size))
+    alpha_atvv = np.zeros((n_action, timestep.size, position.size, position.size))
     alpha_atvv += jitter
     # Initialize the time counter
     dt = dt_min_sec if dt_min is not None else 0
@@ -91,7 +89,7 @@ def build_pseudo_count_matrix(
         # if skip_empty_days and cum_steps[day].sum() == 0:
         #     continue
         # Loop over the timesteps
-        for t_idx in range(timestep.size - 1):
+        for t_idx in range(timestep.size):
             # If the timestamp is outside the range, skip (just increment the time)
             if ((dt_min is not None and dt < dt_min_sec)
                     or (dt_max is not None and dt > dt_max_sec)):
@@ -109,34 +107,6 @@ def build_pseudo_count_matrix(
     return alpha_atvv
 
 
-def build_position_transition_matrix(
-        position: np.ndarray,
-        velocity: np.ndarray,
-        sigma_transition_position: float = 1e-3
-) -> np.ndarray:
-    """Compute the position transition matrix"""
-    tr = np.zeros((position.size, velocity.size, position.size))
-    for p_idx, p in enumerate(position):
-        for v_idx, v in enumerate(velocity):
-            dist = stats.norm.pdf(position, loc=p + v, scale=sigma_transition_position)
-            if np.sum(dist) == 0:
-                if p + v < 0:
-                    dist[0] = 1
-                elif p + v > position[-1]:
-                    dist[-1] = 1 # All weight on greatest position
-                else:
-                    print(f"bounds: {position[0]}, {position[-1]}")
-                    print(f"p+v: {p+v}")
-                    raise ValueError("This should not happen, try increasing 'sigma_transition_position'")
-            tr[p_idx, v_idx, :] = dist
-
-    transition_position_pvp = normalize_last_dim(tr)
-
-    # Make sure that all probabilities sum to (more or less) one
-    np.allclose(np.sum(transition_position_pvp, axis=-1), 1)
-    return transition_position_pvp
-
-
 def get_timestep(dt, timestep, timezone=TIME_ZONE):
     """Get the timestep index for a given datetime"""
     dt = dt.astimezone(tz(timezone))
@@ -152,19 +122,6 @@ def get_datetime_from_timestep(t, now, timestep):
     delta = timedelta(seconds=(t*SECONDS_IN_DAY/timestep.size))
     tm = (datetime.min + delta).time()
     return datetime.combine(now.date(), tm)
-
-
-# def is_nudged(now, username):
-#     u = User.objects.filter(username=username).first()
-#     assert u is not None, f"User {username} not found."
-#     for c in u.challenge_set.filter(accepted=True):
-#         print(c.dt_begin, c.dt_end, now)
-#         if c.dt_begin <= now <= c.dt_end:
-#             print("yeah")
-#         else:
-#             print("no")
-#     ch = u.challenge_set.filter(accepted=True, dt_begin__lte=now, dt_end__gte=now)
-#     return ch.exists()
 
 
 def extract_step_events(
@@ -235,7 +192,7 @@ def extract_actions(
     # Get the unique dates for this user (by looking at the beginning of the challenges)
     dates = sorted(np.unique([ch.dt_begin.date() for ch in all_ch]))
     # Initialize the actions array
-    actions = np.zeros((len(dates), timestep.size - 1), dtype=int)
+    actions = np.zeros((len(dates), timestep.size), dtype=int)
     # Get the date and timestep for each challenge
     ch_date = np.asarray([dates.index(ch.dt_begin.date()) for ch in all_ch])
     ch_timestep = np.asarray([get_timestep(ch.dt_begin, timestep=timestep) for ch in all_ch])

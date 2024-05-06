@@ -17,8 +17,8 @@ from test.plot import plot
 from test.baseline import baseline
 from test.assistant_model.action_plan_generation import get_possible_action_plans, get_challenges
 from test.config.config import (
-    USER, DATA_FOLDER, TIMESTEP, POSITION, SIGMA_POSITION_TRANSITION,
-    VELOCITY, GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
+    USER, DATA_FOLDER, TIMESTEP, POSITION,
+    GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
     ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
     N_SAMPLES, CHILD_MODELS_N_COMPONENTS, LOG_PRIOR,
     N_RESTART, N_EPISODES, CHALLENGE_WINDOW, OFFER_WINDOW, N_CHALLENGE, FIRST_CHALLENGE_OFFER,

@@ -10,38 +10,32 @@ def normalize_last_dim(alpha):
 
 
 def make_a_step(
-        t_idx, policy, v_idx, pos_idx,
-        position, velocity,
-        transition_velocity_atvv,
-        transition_position_pvp,
+        t_idx,
+        policy,
+        pos_idx,
+        position,
+        transition,
         rng
 ):
     # print("rng state", rng.bit_generator.state['state']['state'])
     # Pick new action
     action = policy[t_idx]
-    # Draw new velocity
-    new_v_idx = rng.choice(
-        np.arange(velocity.size),
-        p=transition_velocity_atvv[action, t_idx, v_idx, :])
-    # Update velocity and position
+    # Draw position
     new_pos_idx = rng.choice(
         position.size,
-        p=transition_position_pvp[pos_idx, v_idx, :]
+        p=transition[action, t_idx, pos_idx, :]
     )
     if LOG_AT_EACH_TIMESTEP:
-        print(f"t_idx {t_idx:02} a {action} v_idx {v_idx:02} pos_idx {pos_idx:02} rng state {rng.bit_generator.state['state']['state']}")
+        print(f"t_idx {t_idx:02} a {action} pos_idx {pos_idx:02} rng state {rng.bit_generator.state['state']['state']}")
 
-    return action, new_v_idx, new_pos_idx
+    return action, new_pos_idx
 
 
 def select_action_plan(
         log_prior_position: np.ndarray,
         gamma: float,
         position: np.ndarray,
-        velocity: np.ndarray,
-        pseudo_count: np.ndarray,
-        transition: np.ndarray,
-        v_idx: int,
+        pseudo_counts: np.ndarray,
         pos_idx: int,
         t_idx: int,
         action_plans: np.ndarray,
@@ -53,14 +47,15 @@ def select_action_plan(
     rng = np.random.default_rng(seed)
     if LOG_ASSISTANT_MODEL:
         print("-"*80)
-        print(f"Assistant: t_idx={t_idx:02} v_idx={v_idx:02} pos_idx={pos_idx:02} n obs {int(np.sum(alpha_atvv) - alpha_atvv.size*ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER):02} rng state {rng.bit_generator.state['state']['state']}")
+        print(f"Assistant: t_idx={t_idx:02} pos_idx={pos_idx:02} n obs {int(np.sum(pseudo_counts) - pseudo_counts.size * ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER):02} rng state {rng.bit_generator.state['state']['state']}")
     # Get the dimensions of the action plans
     n_action_plan, h = action_plans.shape
     # Initialize action plan values
     pragmatic = np.zeros(n_action_plan)
     epistemic = np.zeros(n_action_plan)
     # Initialize belief about the velocity transition
-    alpha_t = pseudo_count.copy()
+    alpha_t = pseudo_counts.copy()
+    # Normalize the last dimension
     qt = normalize_last_dim(alpha_t)
     # Compute value of each action plan
     for ap_index, ap in enumerate(action_plans):

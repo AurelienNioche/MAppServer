@@ -21,21 +21,20 @@ from user.models import User
 from test.user_simulation import creation
 from test.user_simulation import websocket_client
 from test.generative_model.core import generative_model
-from test.activity.activity import get_timestep, extract_actions, \
-    convert_timesteps_into_activity_level
-
+from test.activity.activity import get_timestep, extract_actions, step_events_to_cumulative_steps
 from test.assistant_model.action_plan_generation import get_possible_action_plans
 from test.assistant_model.action_plan_generation import get_challenges
 
 from test.config.config import (
-    TIMESTEP, POSITION, VELOCITY, N_DAY, N_CHALLENGE, OFFER_WINDOW, OBJECTIVE, AMOUNT,
+    TIMESTEP, POSITION, N_DAY, N_CHALLENGE, OFFER_WINDOW, OBJECTIVE, AMOUNT,
     BASE_CHEST_AMOUNT, USERNAME, INIT_STATE, EXPERIMENT_NAME, FIRST_CHALLENGE_OFFER,
     CHALLENGE_WINDOW, CHALLENGE_DURATION, STARTING_DATE, URL, NOW,
     USER, DATA_FOLDER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS,
-    GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
-    SIGMA_POSITION_TRANSITION, SEED_GENERATIVE_MODEL, SEED_RUN,
+    GENERATIVE_MODEL_PSEUDO_COUNT_JITTER, SEED_GENERATIVE_MODEL, SEED_RUN,
     LOG_AT_EACH_EPISODE,
-    LOG_PSEUDO_COUNT_UPDATE)
+    LOG_PSEUDO_COUNT_UPDATE,
+    INIT_POS_IDX
+)
 
 
 class FakeUser(websocket_client.DefaultUser):
@@ -43,12 +42,8 @@ class FakeUser(websocket_client.DefaultUser):
         super().__init__(username=USERNAME)
         self.timestep = TIMESTEP
         self.position = POSITION
-        self.velocity = VELOCITY
-        self.pos_idx = np.argmin(np.abs(self.position))  # Something close to 0
-        self.v_idx = np.argmin(np.abs(self.velocity))  # Something close to 0
-
+        self.pos_idx = INIT_POS_IDX
         self.n_steps = []
-
         challenges = get_challenges(
             start_time=FIRST_CHALLENGE_OFFER,
             time_zone=TIME_ZONE,
@@ -57,15 +52,15 @@ class FakeUser(websocket_client.DefaultUser):
             n_challenges_per_day=N_CHALLENGE
         )
         self.action_plans = get_possible_action_plans(challenges=challenges, timestep=TIMESTEP)
-        self.transition_velocity_atvv, self.transition_position_pvp = generative_model(
+        self.transition = generative_model(
             action_plans=self.action_plans,
-            user=USER, data_path=DATA_FOLDER,
-            timestep=TIMESTEP, n_samples=N_SAMPLES,
+            user=USER,
+            data_path=DATA_FOLDER,
+            timestep=TIMESTEP,
+            n_samples=N_SAMPLES,
             child_models_n_components=CHILD_MODELS_N_COMPONENTS,
-            velocity=VELOCITY,
             pseudo_count_jitter=GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
             position=POSITION,
-            sigma_transition_position=SIGMA_POSITION_TRANSITION,
             seed=SEED_GENERATIVE_MODEL
         )
         # np.save("action_plans_2.npy", action_plans)
@@ -77,12 +72,9 @@ class FakeUser(websocket_client.DefaultUser):
         self._now = NOW
         self.starting_date = self._now.date()
         self.android_id = 0
-        print("Seeding the random number generator with", SEED_RUN)
         self.rng = np.random.default_rng(seed=SEED_RUN)
-
         self.u = User.objects.filter(username=self.username).first()
         self.init_done = False
-
         self.progress_bar = tqdm.tqdm(total=N_DAY, desc="Day progression")
 
     def now(self):
@@ -91,12 +83,9 @@ class FakeUser(websocket_client.DefaultUser):
     def update(self):
         # Extract variables
         position = self.position
-        velocity = self.velocity
         timestep = self.timestep
-        transition_velocity_atvv = self.transition_velocity_atvv
-        transition_position_pvp = self.transition_position_pvp
+        transition = self.transition
         pos_idx = self.pos_idx
-        v_idx = self.v_idx
         now = self.now()
         rng = self.rng
         # Get timestep index
@@ -151,29 +140,25 @@ class FakeUser(websocket_client.DefaultUser):
             self.progress_bar.update(1)
 
         # We mean a Markovian step
-        action, new_v_idx, new_pos_idx = make_a_step(
-            t_idx=t_idx, policy=action_plan,
-            v_idx=v_idx, pos_idx=pos_idx,
-            position=position, velocity=velocity,
-            transition_velocity_atvv=transition_velocity_atvv,
-            transition_position_pvp=transition_position_pvp,
+        action, new_pos_idx = make_a_step(
+            t_idx=t_idx,
+            policy=action_plan,
+            pos_idx=pos_idx,
+            position=position,
+            transition=transition,
             rng=rng
         )
         # Increment position and velocity
-        self.v_idx = new_v_idx
         self.pos_idx = new_pos_idx
         # Increment time
         self.increment_time()
-
-        step_midnight = position[self.pos_idx] # + 1e3
-        #
+        step_midnight = position[self.pos_idx]  # + 1e3
         # bins = velocity # np.concatenate((velocity, np.full(1, np.inf)))
         # # Clip the activity to the bins
         # v = np.clip(step_midnight, bins[0], bins[-1])
         # v = np.digitize(v, bins, right=True) # - 1
         # print(v == self.v_idx)
         # assert
-
         steps = [{
                 "ts": self.now().timestamp()*1000,  # equivalent of t_idx + 1
                 "step_midnight": step_midnight,
@@ -204,7 +189,6 @@ class FakeUser(websocket_client.DefaultUser):
             # print(f"day # {difference.days} - {self.position[self.pos_idx]} steps done.")
             new_now = new_now.replace(hour=0, minute=0)
             self.pos_idx = np.argmin(np.abs(self.position))  # Something close to 0
-            self.v_idx = np.argmin(np.abs(self.velocity))
             self.init_done = False
             # print("-" * 100)
         self._now = new_now
@@ -260,15 +244,12 @@ step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u
     # if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
 # print("step_events more than 0")
 #%%
-deriv_cum_steps, cum_steps = convert_timesteps_into_activity_level(
+cum_steps = step_events_to_cumulative_steps(
     step_events=step_events,
-    timestep=TIMESTEP,
-    log_update_count=LOG_PSEUDO_COUNT_UPDATE,
-    return_cum_steps=True
+    timestep=TIMESTEP
 )
 af_run = {
     "position": cum_steps
 }
-print(cum_steps.shape)
 #%%
 plot.plot_day_progression(af_run)

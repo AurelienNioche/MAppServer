@@ -47,7 +47,7 @@ def generative_model(
         position,
         action_plans,
         seed
-):
+) -> np.ndarray:
 
     # print("generative_model ----------------")
     # print("user", user)
@@ -77,7 +77,7 @@ def generative_model(
         n_samples=n_samples,
     )
 
-    cum_steps = step_events_to_cumulative_steps(
+    cum_steps_without_nudging = step_events_to_cumulative_steps(
         step_events=step_events,
         timestep=timestep
     )
@@ -88,24 +88,24 @@ def generative_model(
         seed=seed
     )
 
-    observed_activity, observed_action_plans = generate_observations(
-        cum_steps=cum_steps,
+    cum_steps, actions = generate_observations(
+        cum_steps=cum_steps_without_nudging,
         nudge_effect=nudge_effect,
         action_plans=action_plans,
         seed=seed
     )
 
     # Compute pseudo-count matrix
-    alpha_atvv = build_pseudo_count_matrix(
-        actions=observed_action_plans,
-        cum_steps=observed_activity,
+    pseudo_counts = build_pseudo_count_matrix(
+        actions=actions,
+        cum_steps=cum_steps,
         position=position,
         timestep=timestep,
         jitter=pseudo_count_jitter,
         log_update_count=False
     )
     # Compute expected probabilities
-    transition_atvv = normalize_last_dim(alpha_atvv) # Expected value given Dirichlet distribution parameterised by alpha
+    transition = normalize_last_dim(pseudo_counts)  # Expected value given Dirichlet distribution parameterised by alpha
     # Make sure that all probabilities sum to (more or less) one
-    assert np.allclose(np.sum(transition_atvv, axis=-1), 1)
-    return transition_atvv
+    assert np.allclose(np.sum(transition, axis=-1), 1)
+    return transition

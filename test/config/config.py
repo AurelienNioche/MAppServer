@@ -34,23 +34,16 @@ N_CHALLENGE = 3
 # NGROK_URL = "ff87-130-209-252-154.ngrok-free.app"
 # URL = f"wss://{NGROK_URL}/ws",
 # Number of days to create challenges for
-
 # ------------------------------------------------------
-
 USER = "11AV"
 DATA_FOLDER = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + "/data"
 N_TIMESTEP = 24
-N_POSITION = 100
 TIMESTEP = np.linspace(0, 1, N_TIMESTEP)
+N_POSITION = 100
 POSITION = np.linspace(0, 40000, N_POSITION)
-SIGMA_POSITION_TRANSITION = 30.0
-N_VELOCITY = 30
-# velocity = np.concatenate((np.zeros(1), np.geomspace(2, np.max(combined)+1, n_velocity-1)))
-VELOCITY = np.linspace(0, 12000, N_VELOCITY)
 GENERATIVE_MODEL_PSEUDO_COUNT_JITTER = 1e-03
 ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER = 0.1
 GAMMA = 1.0
-
 # ------------------------------------------------------
 # Parameters for the generative model
 N_SAMPLES = 1000
@@ -62,28 +55,18 @@ LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
 # Number of new instances of the (same) model
 N_RESTART = 5
 # Number of episodes to run this instance of model for
-N_EPISODES = 400
+N_EPISODES = 50
 # Seed
 SEED_ASSISTANT = 42
-
 # ------------------------------------------
 # For the simulation
 SEED_RUN = 42
-
 # -------------------------------------------
-
 HEURISTIC = None
 N_DAY = N_EPISODES
-
-# assert N_DAY > 1, "N_DAY must be greater than 1"
-
-# _-------------------------------------
-
+# --------------------------------------
 INIT_POS_IDX = np.absolute(POSITION).argmin()  # Something close to 0
-INIT_V_IDX = np.absolute(VELOCITY).argmin()    # Something close to 0
-
 # print ---------------------------------
-
 LOG_AT_EACH_EPISODE = False
 LOG_AT_EACH_TIMESTEP = False
 LOG_PSEUDO_COUNT_UPDATE = False

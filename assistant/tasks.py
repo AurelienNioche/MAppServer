@@ -9,17 +9,18 @@ from MAppServer.settings import TIME_ZONE
 from assistant.models import User
 
 from test.config.config import (
-    TIMESTEP, POSITION, VELOCITY, SIGMA_POSITION_TRANSITION, GAMMA, LOG_PRIOR,
+    TIMESTEP, POSITION, GAMMA, LOG_PRIOR,
     HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, SEED_ASSISTANT,
-    INIT_POS_IDX, INIT_V_IDX, LOG_PSEUDO_COUNT_UPDATE
+    INIT_POS_IDX, LOG_PSEUDO_COUNT_UPDATE
 )
 from test.test__generative_model import get_possible_action_plans
 from test.assistant_model.action_plan_selection import select_action_plan
 from test.activity.activity import (
-    convert_timesteps_into_activity_level,
+    step_events_to_cumulative_steps,
     get_timestep, get_datetime_from_timestep,
     extract_actions, extract_step_events,
-    build_pseudo_count_matrix, build_position_transition_matrix)
+    build_pseudo_count_matrix
+)
 
 
 SEC_IN_DAY = 86400
@@ -77,13 +78,13 @@ def get_current_position_and_velocity(
     t_idx = get_timestep(now, timestep=timestep)
     # Manage the case where there is no activity/we are at the start of the day
     if t_idx == 0:
-        return INIT_POS_IDX, INIT_V_IDX, t_idx
+        return INIT_POS_IDX, t_idx
     # Get the current position and velocity
     start_of_day = datetime.combine(now, time.min, tzinfo=timezone(TIME_ZONE))
     today_activities = u.activity_set.filter(dt__gt=start_of_day, dt__lt=now)
     last_act = today_activities.order_by('dt').first()
     if last_act is None:
-        return 0, 0, t_idx
+        return 0, t_idx
     pos = last_act.step_midnight
     pos_idx = np.digitize(pos, POSITION, right=False) - 1
     date = dates.index(now.date())
@@ -91,9 +92,7 @@ def get_current_position_and_velocity(
     # print("date", date, "ts", ts)
     # print("deriv_cumulative_steps", deriv_cumulative_steps.shape)
     v = activity[date, ts]
-    # print("v", v)
-    v_idx = np.digitize(v, VELOCITY, right=False) - 1
-    return pos_idx, v_idx, t_idx
+    return pos_idx, t_idx
 
 
 def update_challenges_based_on_action_plan(action_plan, now, later_challenges, timestep):
@@ -139,16 +138,15 @@ def update_beliefs_and_challenges(
     step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
     if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
         # print("step_events more than 0")
-        activity = convert_timesteps_into_activity_level(
+        activity = step_events_to_cumulative_steps(
             step_events=step_events,
-            timestep=TIMESTEP,
-            log_update_count=LOG_PSEUDO_COUNT_UPDATE
+            timestep=TIMESTEP
         )
     else:
         activity = np.empty((0, TIMESTEP.size))
         # assert activity.size == 0, "Activity should be empty"
 
-    pos_idx, v_idx, t_idx = get_current_position_and_velocity(
+    pos_idx, t_idx = get_current_position_and_velocity(
         u=u,
         activity=activity,
         dates=dates,
@@ -171,20 +169,14 @@ def update_beliefs_and_challenges(
 
     # print("activity", activity)
     # print("va te faire enculer", LOG_PSEUDO_COUNT_UPDATE)
-    alpha_tvv = build_pseudo_count_matrix(
+    pseudo_counts = build_pseudo_count_matrix(
         cum_steps=activity,
         actions=actions,
         timestep=TIMESTEP,
-        velocity=VELOCITY,
         jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
         dt_min=dt_min, dt_max=dt_max,
-        log_update_count=LOG_PSEUDO_COUNT_UPDATE
-    )
-
-    transition_position_pvp = build_position_transition_matrix(
         position=POSITION,
-        velocity=VELOCITY,
-        sigma_transition_position=SIGMA_POSITION_TRANSITION
+        log_update_count=LOG_PSEUDO_COUNT_UPDATE
     )
 
     # Get the challenges for today
@@ -203,16 +195,13 @@ def update_beliefs_and_challenges(
     if HEURISTIC is None:
         # Select the action plan using active inference
         action_plan_idx, pragmatic_value, epistemic_value = select_action_plan(
-            alpha_atvv=alpha_tvv,
-            transition_position_pvp=transition_position_pvp,
-            v_idx=v_idx,
+            pseudo_counts=pseudo_counts,
             pos_idx=pos_idx,
             t_idx=t_idx,
             action_plans=action_plans,
             log_prior_position=LOG_PRIOR,
             gamma=GAMMA,
             position=POSITION,
-            velocity=VELOCITY,
             seed=SEED_ASSISTANT
         )
         # Get the action plan based on the index
