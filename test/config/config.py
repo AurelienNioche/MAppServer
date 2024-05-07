@@ -12,12 +12,12 @@ INIT_STATE = "experimentNotStarted"
 # WHen things will start
 FIRST_CHALLENGE_OFFER = "7:00"
 # Define "now" for debug purposes
-NOW_TIME = "00:00"
-NOW = datetime.combine(
-    datetime.now().date(),
-    datetime.strptime(NOW_TIME, "%H:%M").time(),
-    tzinfo=timezone(TIME_ZONE)
-)
+NOW = datetime.now(timezone(TIME_ZONE)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+#     datetime.now(timezone(TIME_ZONE)).date(),
+#     datetime.strptime(NOW_TIME, "%H:%M").time(),
+#     tzinfo=timezone(TIME_ZONE)
+# )
 # Starting date of the experiment
 STARTING_DATE = NOW.date().strftime("%d/%m/%Y")  # "28/03/2024"
 # Experiment name (can be anything)
@@ -30,7 +30,7 @@ AMOUNT = 0.4
 OFFER_WINDOW = 1   # in hours
 CHALLENGE_WINDOW = 2  # in hours
 CHALLENGE_DURATION = 1  # in hours
-N_CHALLENGE = 3
+N_CHALLENGES_PER_DAY = 3
 # NGROK_URL = "ff87-130-209-252-154.ngrok-free.app"
 # URL = f"wss://{NGROK_URL}/ws",
 # Number of days to create challenges for
@@ -49,13 +49,15 @@ GAMMA = 1.0
 N_SAMPLES = 1000
 CHILD_MODELS_N_COMPONENTS = 3
 SEED_GENERATIVE_MODEL = 42
+LOC_NUDGE_EFFECT = 10000
+SCALE_NUDGE_EFFECT = 0.1
 # ------------------------------------------------------
 # Parameters for the assistant model
 LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
 # Number of new instances of the (same) model
-N_RESTART = 5
+N_RESTART = 1
 # Number of episodes to run this instance of model for
-N_EPISODES = 50
+N_EPISODES = 1
 # Seed
 SEED_ASSISTANT = 42
 # ------------------------------------------
@@ -67,8 +69,8 @@ N_DAY = N_EPISODES
 # --------------------------------------
 INIT_POS_IDX = np.absolute(POSITION).argmin()  # Something close to 0
 # print ---------------------------------
-LOG_AT_EACH_EPISODE = False
-LOG_AT_EACH_TIMESTEP = False
-LOG_PSEUDO_COUNT_UPDATE = False
+LOG_AT_EACH_EPISODE = True
+LOG_AT_EACH_TIMESTEP = True
+LOG_PSEUDO_COUNT_UPDATE = True
 LOG_ACTIVITY = False
 LOG_ASSISTANT_MODEL = False

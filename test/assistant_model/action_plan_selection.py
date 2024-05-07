@@ -26,7 +26,7 @@ def make_a_step(
         p=transition[action, t_idx, pos_idx, :]
     )
     if LOG_AT_EACH_TIMESTEP:
-        print(f"t_idx {t_idx:02} a {action} pos_idx {pos_idx:02} rng state {rng.bit_generator.state['state']['state']}")
+        print(f"t_idx {t_idx:02} a {action} pos_idx {pos_idx:02} n_steps {position[pos_idx]} => new pos_idx {new_pos_idx:02} rng state {rng.bit_generator.state['state']['state']}")
 
     return action, new_pos_idx
 

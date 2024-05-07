@@ -75,9 +75,18 @@ def build_pseudo_count_matrix(
     sec_per_timestep = SECONDS_IN_DAY / timestep.size
     # Get the velocity index for each activity level
     all_idx = cum_steps_to_pos_idx(cum_steps=cum_steps, position=position, log_update_count=log_update_count)
+    # # Initialize the pseudo-count matrix
+    # alpha_atvv = np.zeros((n_action, timestep.size, position.size, position.size))
+    # for p_t in range(position.size):
+    #     for p_tp1 in range(position.size):
+    #         if p_tp1 >= p_t:
+    #             alpha_atvv[:, :, p_t, p_tp1] += jitter
     # Initialize the pseudo-count matrix
-    alpha_atvv = np.zeros((n_action, timestep.size, position.size, position.size))
-    alpha_atvv += jitter
+    pseudo_counts = np.zeros((n_action, timestep.size, position.size, position.size))
+    # Create a mask where p_tp1 >= p_t
+    mask = np.tri(position.size, position.size, 0, dtype=bool).T
+    # Add jitter where mask is True
+    pseudo_counts[:, :, mask] += jitter
     # Initialize the time counter
     dt = dt_min_sec if dt_min is not None else 0
     if LOG_ACTIVITY:
@@ -99,12 +108,11 @@ def build_pseudo_count_matrix(
             action = actions[day, t_idx]
             idx_at_t = all_idx[day, t_idx]
             idx_at_tp1 = all_idx[day, t_idx + 1]
-            if log_update_count:
-                print("action", action, "day", day, "t_idx", t_idx, "pos_idx", idx_at_t, "new_pos_idx", idx_at_tp1)
-            alpha_atvv[action, t_idx, idx_at_t, idx_at_tp1] += 1
+            print("UPDATE PSEUDO-COUNTS", "t_idx", t_idx, "action", action, "day", day, "pos_idx", idx_at_t, "new_pos_idx", idx_at_tp1)
+            pseudo_counts[action, t_idx, idx_at_t, idx_at_tp1] += 1
             dt += sec_per_timestep
     # Return the pseudo-count matrix
-    return alpha_atvv
+    return pseudo_counts
 
 
 def get_timestep(dt, timestep, timezone=TIME_ZONE):
@@ -203,3 +211,27 @@ def extract_actions(
     if actions.shape[0] == 1:
         actions = actions.flatten()
     return actions
+
+
+# #%%
+# from test.config.config import POSITION as position, TIMESTEP as timestep
+#
+# n_action = 2
+# jitter = 0.01
+#
+# # Initialize the pseudo-count matrix
+# pseudo_counts = np.zeros((n_action, timestep.size, position.size, position.size))
+#
+# # Create a mask where p_tp1 >= p_t
+# mask = np.tri(position.size, position.size, 0, dtype=bool).T
+#
+# # Add jitter where mask is True
+# pseudo_counts[:, :, mask] += jitter
+#
+# alpha_atvv = np.zeros((n_action, timestep.size, position.size, position.size))
+# for p_t in range(position.size):
+#     for p_tp1 in range(position.size):
+#         if p_tp1 >= p_t:
+#             alpha_atvv[:, :, p_t, p_tp1] += jitter
+#
+# print(np.allclose(alpha_atvv, pseudo_counts))

@@ -40,9 +40,13 @@ def read_activities_and_extract_step_events(
     """Extract the step events for a given user"""
     entries = u.activity_set.order_by("dt")
     dt = np.asarray(entries.values_list("dt", flat=True))
+    dt = np.asarray([_dt.astimezone(timezone(TIME_ZONE)) for _dt in dt])
     all_pos = np.asarray(entries.values_list("step_midnight", flat=True))
     days = np.asarray([_dt.date() for _dt in dt])
     uniq_days = list(np.sort(np.unique(days)))
+
+    for _dt, _pos in zip(dt, all_pos):
+        print(_dt, _pos)
     step_events = extract_step_events(
         step_counts=all_pos,
         datetimes=pd.to_datetime(dt),
@@ -127,7 +131,8 @@ def update_beliefs_and_challenges(
     else:
         # print("now", now)
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
-    # print("now from tasks", now)
+        now = now.astimezone(timezone(TIME_ZONE))
+    print("now from tasks", now, now.tzinfo)
 
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()

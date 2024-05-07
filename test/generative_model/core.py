@@ -4,7 +4,7 @@ from datetime import datetime, time
 from glob import glob
 import pandas as pd
 
-from .activity_simulation import generate_nudge_effect, generate_observations
+from .nudge_effect import generate_nudge_effect
 from .fit import fit_model
 from .sample import sample
 
@@ -37,6 +37,29 @@ def load_data(
     return step_events
 
 
+def generate_observations(
+        cum_steps,
+        nudge_effect,
+        action_plans,
+        seed
+) -> (np.ndarray, np.ndarray):
+
+    # First compute the pseudo-derivative
+    diff_cum_steps = np.diff(cum_steps, axis=1)
+    cum_steps_at_t0 = cum_steps[:, 0][:, np.newaxis]
+    steps = np.concatenate((cum_steps_at_t0, diff_cum_steps), axis=1)
+    # Then add the nudge effect
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(action_plans.shape[0], size=steps.shape[0])
+    actions = action_plans[idx]
+    action_effect = actions * nudge_effect[:]
+    steps[:, 1:] += action_effect
+    steps[steps < 0] = 0  # No negative steps
+    # Then re-compute the cumulative sum
+    cum_steps = np.cumsum(steps, axis=1)
+    return cum_steps, actions
+
+
 def generative_model(
         user,
         data_path,
@@ -48,20 +71,6 @@ def generative_model(
         action_plans,
         seed
 ) -> np.ndarray:
-
-    # print("generative_model ----------------")
-    # print("user", user)
-    # print("data_path", data_path)
-    # print("timestep", timestep)
-    # print("n_samples", n_samples)
-    # print("child_models_n_components", child_models_n_components)
-    # print("velocity", velocity)
-    # print("pseudo_count_jitter", pseudo_count_jitter)
-    # print("position", position)
-    # print("sigma_transition_position", sigma_transition_position)
-    # print("action_plans", action_plans)
-    # print("seed", seed)
-    # -------------------------------
     # Load data
     step_events = load_data(user=user, data_path=data_path)
     # Fit the model
@@ -76,25 +85,24 @@ def generative_model(
         transforms=transforms,
         n_samples=n_samples,
     )
-
+    # Compute the cumulative steps
     cum_steps_without_nudging = step_events_to_cumulative_steps(
         step_events=step_events,
         timestep=timestep
     )
-
+    # Generate the nudge effect
     nudge_effect = generate_nudge_effect(
         timestep=timestep,
-        n_samples=n_samples,
+        action_plans=action_plans,
         seed=seed
     )
-
+    # Generate the observations
     cum_steps, actions = generate_observations(
         cum_steps=cum_steps_without_nudging,
         nudge_effect=nudge_effect,
         action_plans=action_plans,
         seed=seed
     )
-
     # Compute pseudo-count matrix
     pseudo_counts = build_pseudo_count_matrix(
         actions=actions,

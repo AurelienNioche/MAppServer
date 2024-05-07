@@ -24,8 +24,7 @@ def test_assistant_model(
     rng = np.random.default_rng(seed=seed_run)
     # Initialize history
     hist_err = np.zeros((n_restart, n_episodes*timestep.size))
-    hist_pos = np.zeros((n_restart, n_episodes, timestep.size))
-    hist_vel = np.zeros_like(hist_pos)
+    hist_pos = np.zeros((n_restart, n_episodes, timestep.size+1))
     hist_epistemic = np.zeros((n_restart, n_episodes, len(action_plans)))
     hist_pragmatic = np.zeros_like(hist_epistemic)
     # Number of actions
@@ -65,6 +64,9 @@ def test_assistant_model(
             pos_idx = INIT_POS_IDX
             # Going through the policy
             for t_idx in range(timestep.size):
+                # Record position and velocity
+                hist_pos[sample, ep_idx, t_idx] = position[pos_idx]
+                # Make a step
                 action, new_pos_idx = make_a_step(
                     policy=policy,
                     t_idx=t_idx,
@@ -74,16 +76,15 @@ def test_assistant_model(
                     rng=rng
                 )
                 # Update pseudo-counts
-                if LOG_PSEUDO_COUNT_UPDATE and ep_idx < n_episodes - 1:
-                    print("action", action, "day", ep_idx, "t_idx", t_idx, "pos_idx", pos_idx, "new_pos_idx", new_pos_idx)
                 pseudo_counts[action, t_idx, pos_idx, new_pos_idx] += 1
+                print("pseudo_counts sum", int(pseudo_counts.sum() - pseudo_counts.size * alpha_jitter))
                 # Replace old value with the new value
                 pos_idx = new_pos_idx
-                # Record position and velocity
-                hist_pos[sample, ep_idx, t_idx] = position[pos_idx]
                 # Log
                 error = np.mean(np.absolute(transition - normalize_last_dim(pseudo_counts)))
                 hist_err[sample, epoch] = error
+            # Record the last position
+            hist_pos[sample, ep_idx, -1] = position[pos_idx]
             epoch += 1
     return {
             "gamma": gamma,
@@ -91,6 +92,5 @@ def test_assistant_model(
             "error": hist_err,
             "epistemic": hist_epistemic,
             "pragmatic": hist_pragmatic,
-            "position": hist_pos[:, :, :],
-            "velocity": hist_vel[:, :, :]
+            "position": hist_pos[:, :, :]
     }
