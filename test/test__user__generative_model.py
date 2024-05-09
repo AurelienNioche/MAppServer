@@ -14,12 +14,9 @@ from pytz import timezone
 import json
 import numpy as np
 
-from assistant.tasks import \
-    read_activities_and_extract_step_events
-from test.assistant_model.action_plan_selection import \
-    make_a_step
-from test.plot import \
-    plot
+from assistant.tasks import read_activities_and_extract_step_events
+from test.assistant_model.action_plan_selection import make_a_step
+from test.plot import plot
 
 from MAppServer.settings import TIME_ZONE
 from user.models import User
@@ -37,9 +34,9 @@ from test.config.config import (
     USER, DATA_FOLDER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS,
     GENERATIVE_MODEL_PSEUDO_COUNT_JITTER, SEED_GENERATIVE_MODEL, SEED_RUN,
     LOG_AT_EACH_EPISODE,
-    LOG_PSEUDO_COUNT_UPDATE,
-    INIT_POS_IDX
-)
+    LOG_AT_EACH_TIMESTEP,
+    INIT_POS_IDX,
+    USE_PROGRESS_BAR)
 
 
 class FakeUser(websocket_client.DefaultUser):
@@ -68,20 +65,14 @@ class FakeUser(websocket_client.DefaultUser):
             position=POSITION,
             seed=SEED_GENERATIVE_MODEL
         )
-        # np.save("action_plans_2.npy", action_plans)
-        # np.save("timestep_2.npy", TIMESTEP)
-        # np.save("position_2.npy", POSITION)
-        # np.save("velocity_2.npy", VELOCITY)
-        # np.save("transition_velocity_atvv_2.npy", self.transition_velocity_atvv)
-        # np.save("transition_position_pvp_2.npy", self.transition_position_pvp)
         self._now = NOW
-        print("init now", self._now, self._now.tzinfo)
         self.starting_date = self._now.date()
         self.android_id = 0
         self.rng = np.random.default_rng(seed=SEED_RUN)
         self.u = User.objects.filter(username=self.username).first()
         self.init_done = False
-        self.progress_bar = tqdm.tqdm(total=N_DAY, desc="Day progression")
+        if USE_PROGRESS_BAR:
+            self.progress_bar = tqdm.tqdm(total=N_DAY, desc="Day progression")
 
     def now(self):
         return self._now.astimezone(timezone(TIME_ZONE))
@@ -103,18 +94,6 @@ class FakeUser(websocket_client.DefaultUser):
             }
             self.init_done = True
             return to_return
-        # if t_idx >= timestep.size - 1:
-        #     steps = []
-        #     to_return = {
-        #         "now": now.strftime("%d/%m/%Y %H:%M:%S"),
-        #         "steps": json.dumps(steps),
-        #         "skipAssistantUpdate": True
-        #     }
-        #     # Note to future self: action plan is not used here
-        #     # if LOG_AT_EACH_TIMESTEP:
-        #     #    print("t_idx", t_idx, "a", 0, "v_idx", v_idx, "pos_idx", pos_idx, )
-        #     self.increment_time()
-        #     return to_return
         # Select action plan
         action_plan = extract_actions(
             u=self.u, timestep=timestep,
@@ -129,7 +108,7 @@ class FakeUser(websocket_client.DefaultUser):
             print("-" * 100)
             print(f"restart #0 - episode #{n_days} - policy #{action_plan_idx}")
             print("-" * 100)
-        if t_idx == 0:
+        if USE_PROGRESS_BAR and t_idx == 0:
             self.progress_bar.update(1)
         # We mean a Markovian step
         action, new_pos_idx = make_a_step(
@@ -146,7 +125,8 @@ class FakeUser(websocket_client.DefaultUser):
         self.increment_time_and_reset_if_end_of_day()
         # Send the shite
         step_midnight = position[new_pos_idx]
-        print("t_idx", t_idx, "now", self.now(), "new_pos_idx", new_pos_idx, "n_steps", step_midnight)
+        if LOG_AT_EACH_TIMESTEP:
+            print(f"t_idx {t_idx:02} now", self.now(), "new_pos_idx", new_pos_idx, "n_steps", step_midnight)
 
         ts = self.to_timestamp(self.now())
         if t_idx == 23:
@@ -159,8 +139,7 @@ class FakeUser(websocket_client.DefaultUser):
         self.android_id += 1
         to_return = {
             "now": now.strftime("%d/%m/%Y %H:%M:%S"),
-            "steps": json.dumps(steps),
-            "skipAssistantUpdate": True
+            "steps": json.dumps(steps)
         }
         return to_return
 
@@ -169,19 +148,17 @@ class FakeUser(websocket_client.DefaultUser):
         return dt.astimezone(pytz.UTC).timestamp()*1000
 
     def increment_time_and_reset_if_end_of_day(self):
+        end_of_day = self._now.replace(hour=23, minute=59, second=59, microsecond=999999)
         new_now = self._now + timedelta(hours=1)
-        if new_now > self.now().replace(hour=23, minute=59):
-            # difference = self.now() - datetime.combine(self.starting_date, time(), tzinfo=self.now().tzinfo)
-            # print(f"day # {difference.days} - {self.position[self.pos_idx]} steps done.")
-            new_now = new_now.replace(hour=0, minute=0)
-            self.pos_idx = np.argmin(np.abs(self.position))  # Something close to 0
+        if new_now > end_of_day:
+            new_now = new_now.replace(hour=0, minute=0, microsecond=0)
+            self.pos_idx = INIT_POS_IDX
             self.init_done = False
-            # print("-" * 100)
         self._now = new_now
 
     def done(self):
         done = (self.now().date() - self.starting_date) >= timedelta(days=N_DAY)
-        if done:
+        if USE_PROGRESS_BAR and done:
             self.progress_bar.close()
         return done
 
@@ -211,8 +188,7 @@ def run():
 def plot_day_progression():
 
     u = User.objects.filter(username=USERNAME).first()
-    step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
-    print(dates)
+    step_events, _ = read_activities_and_extract_step_events(u=u)
     cum_steps = step_events_to_cumulative_steps(
         step_events=step_events,
         timestep=TIMESTEP

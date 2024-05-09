@@ -265,8 +265,6 @@ class RequestHandler:
         un_synced_challenges_json = r.get("unSyncedChallenges", None)
         status = r.get("status", None)
         now = r.get("now", None)  # This is for testing purposes
-        skip_assistant_update = r.get("skipAssistantUpdate", False)
-        # print("now from reception desk", now)
         # Find the user
         u = User.objects.filter(username=username).first()
         if u is None:
@@ -289,9 +287,7 @@ class RequestHandler:
         # Update the model
         # TODO: this might take a long time
         #  would need to use Celery or something similar
-        # print("calling the mother(fucker) function")
-        # if new_activity:
-        assistant.tasks.update_beliefs_and_challenges(u=u, now=now, skip_assistant_update=skip_assistant_update)
+        assistant.tasks.update_beliefs_and_challenges(u=u, now=now)
         # Prepare the response
         r = {"subject": subject}
         r.update(get_last_activity_timestamp(u))

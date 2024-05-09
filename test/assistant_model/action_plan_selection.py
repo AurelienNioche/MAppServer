@@ -1,6 +1,7 @@
 import numpy as np
 from test.config.config import LOG_AT_EACH_TIMESTEP, \
-    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, LOG_ASSISTANT_MODEL
+    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, LOG_ASSISTANT_MODEL, \
+    LOG_WARNING_NAN
 
 
 def normalize_last_dim(alpha):
@@ -47,7 +48,8 @@ def select_action_plan(
     rng = np.random.default_rng(seed)
     if LOG_ASSISTANT_MODEL:
         print("-"*80)
-        print(f"Assistant: t_idx={t_idx:02} pos_idx={pos_idx:02} n obs {int(np.sum(pseudo_counts) - pseudo_counts.size * ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER):02} rng state {rng.bit_generator.state['state']['state']}")
+        n_obs = int(np.sum(pseudo_counts) - pseudo_counts.size * ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER)
+        print(f"Assistant: t_idx={t_idx:02} pos_idx={pos_idx:02} n obs {n_obs:02} rng state {rng.bit_generator.state['state']['state']}")
     # Get the dimensions of the action plans
     n_action_plan, h = action_plans.shape
     # Initialize action plan values
@@ -98,14 +100,17 @@ def select_action_plan(
     # print("epistemic", epistemic)
     # If all values are nan, return a random action plan
     if np.isnan(pragmatic).all() and np.isnan(epistemic).all():
-        print("All values are nan")
+        if LOG_WARNING_NAN:
+            print("All values are nan")
         efe = np.ones(n_action_plan)
     # If one of the values is nan, return the other
     elif np.isnan(pragmatic).all():
-        print("Pragmatic values are all nan")
+        if LOG_WARNING_NAN:
+            print("Pragmatic values are all nan")
         efe = epistemic
     elif np.isnan(epistemic).all():
-        print("Epistemic values are all nan")
+        if LOG_WARNING_NAN:
+            print("Epistemic values are all nan")
         efe = pragmatic
     # Otherwise, compute the Expected Free Energy
     else:

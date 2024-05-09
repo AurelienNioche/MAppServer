@@ -11,7 +11,8 @@ from assistant.models import User
 from test.config.config import (
     TIMESTEP, POSITION, GAMMA, LOG_PRIOR,
     HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, SEED_ASSISTANT,
-    INIT_POS_IDX, LOG_PSEUDO_COUNT_UPDATE
+    INIT_POS_IDX, LOG_PSEUDO_COUNT_UPDATE,
+    LOG_EXTRACT_STEP_EVENTS
 )
 from test.test__generative_model import get_possible_action_plans
 from test.assistant_model.action_plan_selection import select_action_plan
@@ -36,26 +37,18 @@ def local(dt: datetime) -> datetime:
 
 def read_activities_and_extract_step_events(
         u: User
-) -> tuple:
+) -> (list[list], pd.Series):
     """Extract the step events for a given user"""
     entries = u.activity_set.order_by("dt")
-    dt = np.asarray(entries.values_list("dt", flat=True))
-    dt = np.asarray([_dt.astimezone(timezone(TIME_ZONE)) for _dt in dt])
+    dts = np.asarray(entries.values_list("dt", flat=True))
+    dts = pd.to_datetime([_dt.astimezone(timezone(TIME_ZONE)) for _dt in dts])
     all_pos = np.asarray(entries.values_list("step_midnight", flat=True))
-    days = np.asarray([_dt.date() for _dt in dt])
-    uniq_days = list(np.sort(np.unique(days)))
-
-    for _dt, _pos in zip(dt, all_pos):
-        print(_dt, _pos)
     step_events = extract_step_events(
         step_counts=all_pos,
-        datetimes=pd.to_datetime(dt),
-        remove_empty_days=False  # Keep the empty days
+        datetimes=dts,
+        remove_empty_days=False
     )
-    if len(step_events) == 0:
-        return step_events, uniq_days, None, None
-    else:
-        return step_events, uniq_days, dt.min(), dt.max()
+    return step_events, dts
 
 
 def get_future_challenges(
@@ -72,8 +65,6 @@ def get_future_challenges(
 
 def get_current_position_and_velocity(
         u: User,
-        activity: np.ndarray,
-        dates: list,
         now: datetime,
         timestep: np.ndarray
 ) -> tuple:
@@ -84,18 +75,13 @@ def get_current_position_and_velocity(
     if t_idx == 0:
         return INIT_POS_IDX, t_idx
     # Get the current position and velocity
-    start_of_day = datetime.combine(now, time.min, tzinfo=timezone(TIME_ZONE))
+    start_of_day = datetime.combine(now, time.min, tzinfo=now.tzinfo)
     today_activities = u.activity_set.filter(dt__gt=start_of_day, dt__lt=now)
     last_act = today_activities.order_by('dt').first()
     if last_act is None:
         return 0, t_idx
     pos = last_act.step_midnight
-    pos_idx = np.digitize(pos, POSITION, right=False) - 1
-    date = dates.index(now.date())
-    ts = get_timestep(now, timestep=timestep)
-    # print("date", date, "ts", ts)
-    # print("deriv_cumulative_steps", deriv_cumulative_steps.shape)
-    v = activity[date, ts]
+    pos_idx = np.argmin(POSITION - pos)
     return pos_idx, t_idx
 
 
@@ -117,22 +103,22 @@ def update_challenges_based_on_action_plan(action_plan, now, later_challenges, t
 
 def update_beliefs_and_challenges(
         u: User,
-        now: str = None,
-        skip_assistant_update: bool = False,
+        now: str = None
 ):
     """
     Update the beliefs concerning the user and update the challenges accordingly
     """
-    if skip_assistant_update:
-        return
+    # print("Updating")
     if now is None:
-        # print("I used default option for `now`")
         now = datetime.now(tz=timezone(TIME_ZONE))
     else:
-        # print("now", now)
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
-        now = now.astimezone(timezone(TIME_ZONE))
-    print("now from tasks", now, now.tzinfo)
+        # now = now.astimezone(timezone(TIME_ZONE))
+    # print("now", now)
+    t_idx = get_timestep(now)
+    if t_idx > 0:
+        # print("Try again another time b***")
+        return
 
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
@@ -140,50 +126,45 @@ def update_beliefs_and_challenges(
         # print("No future challenges, exiting")
         return
 
-    step_events, dates, dt_min, dt_max = read_activities_and_extract_step_events(u=u)
-    if len(step_events) > 0 and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
-        # print("step_events more than 0")
+    step_events, dts = read_activities_and_extract_step_events(u=u)
+
+    if len(step_events) > 0: #and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
+
+        # Get the minimum date
+        min_date = dts.min().date()
+        # Get days as indexes with 0 being the first day, 1 being the second day, etc.
+        # days = np.asarray([(dt.date() - min_date).days for dt in dts])
+        # print("days", days)
+        day_idx_now = (now.date() - min_date).days
+
         activity = step_events_to_cumulative_steps(
             step_events=step_events,
             timestep=TIMESTEP
         )
+        n_days_act = activity.shape[0]
+        if day_idx_now < n_days_act:
+            activity = activity[:day_idx_now] # Exclude today
+
     else:
         activity = np.empty((0, TIMESTEP.size))
-        # assert activity.size == 0, "Activity should be empty"
 
     pos_idx, t_idx = get_current_position_and_velocity(
         u=u,
-        activity=activity,
-        dates=dates,
         now=now,
         timestep=TIMESTEP
     )
-    # .filter(date=now.date())
     actions = extract_actions(
         u=u,
         timestep=TIMESTEP,
     )
     actions = np.atleast_2d(actions)
-
-    # print("actions", actions.shape)
-    # print("activity", activity.shape)
-    # if dt_min is not None:
-    #     pass
-        # print("dt_min", local(dt_min))
-        # print("dt_max", local(dt_max))
-
-    # print("activity", activity)
-    # print("va te faire enculer", LOG_PSEUDO_COUNT_UPDATE)
     pseudo_counts = build_pseudo_count_matrix(
         cum_steps=activity,
         actions=actions,
         timestep=TIMESTEP,
         jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
-        dt_min=dt_min, dt_max=dt_max,
-        position=POSITION,
-        log_update_count=LOG_PSEUDO_COUNT_UPDATE
+        position=POSITION
     )
-
     # Get the challenges for today
     today_challenges = u.challenge_set.filter(dt_begin__date=now.date())
     # Get the possible action plans
@@ -195,6 +176,7 @@ def update_beliefs_and_challenges(
     )
     # TODO: Do extra tests to be sure that the action plans are correct
     if len(action_plans) == 0:
+        print("No possible action plans")
         return
     # Select the action plan
     if HEURISTIC is None:

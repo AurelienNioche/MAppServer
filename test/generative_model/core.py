@@ -109,8 +109,7 @@ def generative_model(
         cum_steps=cum_steps,
         position=position,
         timestep=timestep,
-        jitter=pseudo_count_jitter,
-        log_update_count=False
+        jitter=pseudo_count_jitter
     )
     # Compute expected probabilities
     transition = normalize_last_dim(pseudo_counts)  # Expected value given Dirichlet distribution parameterised by alpha

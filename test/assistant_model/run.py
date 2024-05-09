@@ -2,8 +2,8 @@ import numpy as np
 from tqdm import tqdm
 
 from test.config.config import (
-    INIT_POS_IDX, LOG_AT_EACH_EPISODE, LOG_PSEUDO_COUNT_UPDATE
-)
+    INIT_POS_IDX, LOG_AT_EACH_EPISODE, LOG_PSEUDO_COUNT_UPDATE,
+    USE_PROGRESS_BAR)
 from .action_plan_selection import select_action_plan, normalize_last_dim, make_a_step
 
 
@@ -40,7 +40,10 @@ def test_assistant_model(
         # TODO: only in the upper triangle
         pseudo_counts += alpha_jitter
         epoch = 0
-        for ep_idx in tqdm(range(n_episodes)):
+        _iter = range(n_episodes)
+        if USE_PROGRESS_BAR:
+            _iter = tqdm(_iter)
+        for ep_idx in _iter:
             # Select action plan
             action_plan_idx, pr_value, ep_value = select_action_plan(
                 log_prior_position=log_prior_position,
@@ -77,7 +80,9 @@ def test_assistant_model(
                 )
                 # Update pseudo-counts
                 pseudo_counts[action, t_idx, pos_idx, new_pos_idx] += 1
-                print("pseudo_counts sum", int(pseudo_counts.sum() - pseudo_counts.size * alpha_jitter))
+                if LOG_PSEUDO_COUNT_UPDATE:
+                    print("UPDATE PSEUDO-COUNTS", "t_idx", t_idx, "action", action, "day", ep_idx, "pos_idx", pos_idx, "new_pos_idx", new_pos_idx)
+                    # print("pseudo_counts sum", int(pseudo_counts.sum() - pseudo_counts.size * alpha_jitter))
                 # Replace old value with the new value
                 pos_idx = new_pos_idx
                 # Log
