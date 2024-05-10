@@ -138,7 +138,7 @@ class FakeUser(websocket_client.DefaultUser):
         }]
         self.android_id += 1
         to_return = {
-            "now": now.strftime("%d/%m/%Y %H:%M:%S"),
+            "now": self.now().strftime("%d/%m/%Y %H:%M:%S"),
             "steps": json.dumps(steps)
         }
         return to_return

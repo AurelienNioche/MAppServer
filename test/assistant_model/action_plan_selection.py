@@ -32,6 +32,10 @@ def make_a_step(
     return action, new_pos_idx
 
 
+def compute_number_of_observations(pseudo_counts):
+    return int(np.sum(pseudo_counts) - pseudo_counts.size * ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER)
+
+
 def select_action_plan(
         log_prior_position: np.ndarray,
         gamma: float,
@@ -47,8 +51,10 @@ def select_action_plan(
     # TODO: Check if this is the correct way to set the seed
     rng = np.random.default_rng(seed)
     if LOG_ASSISTANT_MODEL:
-        print("-"*80)
-        n_obs = int(np.sum(pseudo_counts) - pseudo_counts.size * ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER)
+        n_obs = compute_number_of_observations(pseudo_counts)
+        # print("number of observations", n_obs)
+        # print("sum pseudo counts", np.sum(pseudo_counts))
+        # print("jitter sum", pseudo_counts.size*ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER)
         print(f"Assistant: t_idx={t_idx:02} pos_idx={pos_idx:02} n obs {n_obs:02} rng state {rng.bit_generator.state['state']['state']}")
     # Get the dimensions of the action plans
     n_action_plan, h = action_plans.shape

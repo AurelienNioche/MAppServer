@@ -1,8 +1,5 @@
 import os
 
-import \
-    pytz
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
@@ -17,11 +14,14 @@ from user.models import User
 from test.config.config import (
     TIMESTEP,
     LOG_AT_EACH_TIMESTEP,
-    LOG_PSEUDO_COUNT_UPDATE
-)
+    LOG_PSEUDO_COUNT_UPDATE,
+    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER)
 
+from test.assistant_model.action_plan_selection import compute_number_of_observations
+from utils import logging
 
 SECONDS_IN_DAY = 86400
+LOGGER = logging.get(__name__)
 
 
 def normalize_last_dim(alpha):
@@ -65,6 +65,14 @@ def build_pseudo_count_matrix(
     """Compute the alpha matrix (pseudo-counts) for the transition matrix."""
     # Extract the number of days
     n_days = cum_steps.shape[0]
+
+    DEBUG = False  # n_days < 100
+
+    if DEBUG:
+        for day in range(n_days):
+            for t_idx in range(timestep.size):
+                print("day", day, "t_idx", t_idx, cum_steps[day, t_idx])
+
     # Get the velocity index for each activity level
     all_idx = cum_steps_to_pos_idx(cum_steps=cum_steps, position=position)
     # Initialize the pseudo-count matrix
@@ -72,7 +80,11 @@ def build_pseudo_count_matrix(
     # Create a mask where p_tp1 >= p_t
     mask = np.tri(position.size, position.size, 0, dtype=bool).T
     # Add jitter where mask is True
-    pseudo_counts[:, :, mask] += jitter
+    # pseudo_counts[:, :, mask] += jitter
+
+    sum_mask = np.sum(mask)
+
+    pseudo_counts += jitter
     # Loop over the days
     for day in range(n_days):
         # Loop over the timesteps
@@ -81,9 +93,16 @@ def build_pseudo_count_matrix(
             action = actions[day, t_idx]
             idx_at_t = all_idx[day, t_idx]
             idx_at_tp1 = all_idx[day, t_idx + 1]
-            if n_days < 100 and LOG_PSEUDO_COUNT_UPDATE:
+            if DEBUG:
                 print("UPDATE PSEUDO-COUNTS", "t_idx", t_idx, "action", action, "day", day, "pos_idx", idx_at_t, "new_pos_idx", idx_at_tp1)
             pseudo_counts[action, t_idx, idx_at_t, idx_at_tp1] += 1
+    if DEBUG:
+        n_obs = compute_number_of_observations(pseudo_counts)
+        print("number of observations", n_obs)
+        print("sum pseudo counts", np.sum(pseudo_counts))
+        print("jitter sum", pseudo_counts.size*ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER)
+        print("sum mask", sum_mask)
+        print("sum -sum mask", np.sum(pseudo_counts) - sum_mask)
     # Return the pseudo-count matrix
     return pseudo_counts
 # def build_pseudo_count_matrix(

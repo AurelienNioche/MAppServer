@@ -57,7 +57,7 @@ LOG_PRIOR = np.log(softmax(np.arange(N_POSITION)*2))
 # Number of new instances of the (same) model
 N_RESTART = 1
 # Number of episodes to run this instance of model for
-N_EPISODES = 2
+N_EPISODES = 10
 # Seed
 SEED_ASSISTANT = 42
 # ------------------------------------------
@@ -73,7 +73,7 @@ LOG_AT_EACH_EPISODE = False
 LOG_AT_EACH_TIMESTEP = False
 LOG_PSEUDO_COUNT_UPDATE = False
 LOG_ACTIVITY = False
-LOG_ASSISTANT_MODEL = False
+LOG_ASSISTANT_MODEL = True
 LOG_EXTRACT_STEP_EVENTS = False
 LOG_WARNING_NAN = False
 USE_PROGRESS_BAR = False

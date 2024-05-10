@@ -1,18 +1,19 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime, time
+
+from django.db import transaction
 from pytz import timezone
 import uuid
 import django.db.models
 
 from MAppServer.settings import TIME_ZONE
-from assistant.models import User
+from assistant.models import User, ActionPlan
 
 from test.config.config import (
     TIMESTEP, POSITION, GAMMA, LOG_PRIOR,
     HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, SEED_ASSISTANT,
-    INIT_POS_IDX, LOG_PSEUDO_COUNT_UPDATE,
-    LOG_EXTRACT_STEP_EVENTS
+    INIT_POS_IDX
 )
 from test.test__generative_model import get_possible_action_plans
 from test.assistant_model.action_plan_selection import select_action_plan
@@ -108,43 +109,39 @@ def update_beliefs_and_challenges(
     """
     Update the beliefs concerning the user and update the challenges accordingly
     """
-    # print("Updating")
     if now is None:
         now = datetime.now(tz=timezone(TIME_ZONE))
     else:
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
-        # now = now.astimezone(timezone(TIME_ZONE))
-    # print("now", now)
+
     t_idx = get_timestep(now)
     if t_idx > 0:
-        # print("Try again another time b***")
+        return
+
+    # Look if a decision has already been taken for that day
+    ap = u.actionplan_set.filter(date=now.date()).first()
+    if ap is not None:
+        # print("Decision already taken")
         return
 
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
     if first_challenge is None:
-        # print("No future challenges, exiting")
         return
 
     step_events, dts = read_activities_and_extract_step_events(u=u)
 
-    if len(step_events) > 0: #and not np.all(np.array([len(st) for st in step_events], dtype=int) == 0):
-
+    if len(step_events) > 0:
         # Get the minimum date
         min_date = dts.min().date()
-        # Get days as indexes with 0 being the first day, 1 being the second day, etc.
-        # days = np.asarray([(dt.date() - min_date).days for dt in dts])
-        # print("days", days)
         day_idx_now = (now.date() - min_date).days
-
         activity = step_events_to_cumulative_steps(
             step_events=step_events,
             timestep=TIMESTEP
         )
         n_days_act = activity.shape[0]
         if day_idx_now < n_days_act:
-            activity = activity[:day_idx_now] # Exclude today
-
+            activity = activity[:day_idx_now]  # Exclude today
     else:
         activity = np.empty((0, TIMESTEP.size))
 
@@ -204,4 +201,5 @@ def update_beliefs_and_challenges(
         later_challenges=later_challenges,
         timestep=TIMESTEP
     )
-    # print("-" * 80)
+    with transaction.atomic():
+        ActionPlan.objects.create(user=u, date=now.date(), value=list(action_plan))

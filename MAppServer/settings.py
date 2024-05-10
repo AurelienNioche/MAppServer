@@ -41,10 +41,10 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'user.apps.UserConfig',
     'assistant.apps.AssistantConfig',
      # 'django_celery_beat',
     'reception_desk.apps.ReceptionDeskConfig',
-    'user.apps.UserConfig',
     'channels',
     'daphne',
     'django.contrib.admin',
