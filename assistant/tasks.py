@@ -114,36 +114,40 @@ def update_beliefs_and_challenges(
     else:
         now = timezone(TIME_ZONE).localize(datetime.strptime(now, "%d/%m/%Y %H:%M:%S"))
 
-    t_idx = get_timestep(now)
-    if t_idx > 0:
-        return
-
     # Look if a decision has already been taken for that day
     ap = u.actionplan_set.filter(date=now.date()).first()
     if ap is not None:
         # print("Decision already taken")
         return
 
+    # Get the current timestep
+    t_idx = get_timestep(now)
+
+    # Get later challenges
     later_challenges = get_future_challenges(u, now)
     first_challenge = later_challenges.first()
     if first_challenge is None:
         return
 
+    # Get the step events
     step_events, dts = read_activities_and_extract_step_events(u=u)
 
+    # Transform the step events into cumulative steps
     if len(step_events) > 0:
         # Get the minimum date
         min_date = dts.min().date()
         day_idx_now = (now.date() - min_date).days
-        activity = step_events_to_cumulative_steps(
+        # TODO: It will probably be suitable to discard the first day to avoid
+        #      to bias the inferences
+        cum_steps = step_events_to_cumulative_steps(
             step_events=step_events,
             timestep=TIMESTEP
         )
-        n_days_act = activity.shape[0]
+        n_days_act = cum_steps.shape[0]
         if day_idx_now < n_days_act:
-            activity = activity[:day_idx_now]  # Exclude today
+            cum_steps = cum_steps[:day_idx_now]  # Exclude today
     else:
-        activity = np.empty((0, TIMESTEP.size))
+        cum_steps = np.empty((0, TIMESTEP.size))
 
     pos_idx, t_idx = get_current_position_and_velocity(
         u=u,
@@ -156,7 +160,7 @@ def update_beliefs_and_challenges(
     )
     actions = np.atleast_2d(actions)
     pseudo_counts = build_pseudo_count_matrix(
-        cum_steps=activity,
+        cum_steps=cum_steps,
         actions=actions,
         timestep=TIMESTEP,
         jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,

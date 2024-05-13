@@ -6,7 +6,21 @@ Instructions are given for MacOS (unless specified otherwise), using homebrew pa
 
 ## Websocket URL
 
+If you are using the server at the University of Glasgow, the websocket URL is:
 `wss://samoa.dcs.gla.ac.uk/mapp/ws`
+
+If you are using a local server with ngrok, run the following command:
+
+    ngrok http 8080
+
+then you get a URL given by ngrok that has the form:
+    
+    https://<random numbers>.ngrok-free.app
+
+Then, the websocket URL is:
+
+    wss://<random numbers>.ngrok-free.app/ws
+
 
 ## Dependencies
 
@@ -15,7 +29,8 @@ Instructions are given for MacOS (unless specified otherwise), using homebrew pa
     brew install python3
 
 Version used:
-- Python 3.9.13
+- Python 3.10
+
 
 #### Python libraries
 
@@ -70,7 +85,6 @@ Mail => Settings => Allow IMAP
 Google Account => Security => Activate 2 Steps
 
 Then at the bottom, create an `App Password`
-
 
 
 #### PostgreSQL
@@ -299,23 +313,13 @@ Add to config file:
     ALLOWED_HOSTS = ["*"]
     CSRF_TRUSTED_ORIGINS = ["http://pearse.dcs.gla.ac.uk"]
 
-## TODO (right before launching)
+## TODO right before launching
 
 * Check the settings in `src/Config` in the Android project
 * Check the settings in the server
 
-## TODO (UX/UI)
 
-* Check for responsiveness
-
-## TO DO (backend features)
-
-* Implement the belief update system
-* Implement the update of the challenges (action selection)
-
-## TO DO (Feature = Challenge update)
-
-=> TEST THIS:
+## Mechanism for updating the challenges
   * When a client connects for updating, 
     * Look at the challenges that the client wants to update (because offer accepted, and so on). 
       - Whether the `server_tag` is different or not, then use the client data to update the server data.
@@ -334,12 +338,8 @@ Add to config file:
       * Check which challenges have been updated by comparing the `server_tag` with the 
         `android_tag`. Give the list of challenges to the client.
 
-=> FULL ROLLOUT
-  * Test with a virtual user - Step 1 with bullshit steps
-  * Test with a virtual user - Step 2 with generative model
-  * Using the app
 
-# Extra
+# Extra features
 
 * Optional: Give a thought about allowing backup or not (?)
 

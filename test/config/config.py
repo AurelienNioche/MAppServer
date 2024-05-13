@@ -6,18 +6,13 @@ from pytz import timezone
 
 from MAppServer.settings import TIME_ZONE
 
-URL = "ws://127.0.0.1:8080/ws"
+URL = "wss://ea4e-130-209-252-154.ngrok-free.app/ws"    # "ws://127.0.0.1:8080/ws"
 USERNAME = "123test"
 INIT_STATE = "experimentNotStarted"
 # WHen things will start
 FIRST_CHALLENGE_OFFER = "7:00"
 # Define "now" for debug purposes
 NOW = datetime.now(timezone(TIME_ZONE)).replace(hour=0, minute=0, second=0, microsecond=0)
-
-#     datetime.now(timezone(TIME_ZONE)).date(),
-#     datetime.strptime(NOW_TIME, "%H:%M").time(),
-#     tzinfo=timezone(TIME_ZONE)
-# )
 # Starting date of the experiment
 STARTING_DATE = NOW.date().strftime("%d/%m/%Y")  # "28/03/2024"
 # Experiment name (can be anything)

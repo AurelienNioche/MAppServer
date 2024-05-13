@@ -82,7 +82,6 @@ def create_test_user(
     # Create challenges
 
     current_date = starting_date
-    dt_end = None
     for _ in range(n_day):
         current_time = dt_first_challenge_offer
         for ch_t in range(n_challenge):

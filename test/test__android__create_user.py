@@ -1,27 +1,31 @@
 #%% Imports
 import os
+
+import pytz
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
-import pytz
 import tqdm
 from datetime import timedelta
 from pytz import timezone
 import json
 import numpy as np
 
-from MAppServer.settings import TIME_ZONE
-from user.models import User
 from assistant.tasks import read_activities_and_extract_step_events
 from test.assistant_model.action_plan_selection import make_a_step
 from test.plot import plot
+
+from MAppServer.settings import TIME_ZONE
+from user.models import User
 from test.user_simulation import creation
 from test.user_simulation import websocket_client
 from test.generative_model.core import generative_model
 from test.activity.activity import get_timestep, extract_actions, step_events_to_cumulative_steps
 from test.assistant_model.action_plan_generation import get_possible_action_plans
 from test.assistant_model.action_plan_generation import get_challenges
+
 from test.config.config import (
     TIMESTEP, POSITION, N_DAY, N_CHALLENGES_PER_DAY, OFFER_WINDOW, OBJECTIVE, AMOUNT,
     BASE_CHEST_AMOUNT, USERNAME, INIT_STATE, EXPERIMENT_NAME, FIRST_CHALLENGE_OFFER,
@@ -31,8 +35,7 @@ from test.config.config import (
     LOG_AT_EACH_EPISODE,
     LOG_AT_EACH_TIMESTEP,
     INIT_POS_IDX,
-    USE_PROGRESS_BAR
-)
+    USE_PROGRESS_BAR)
 
 
 class FakeUser(websocket_client.DefaultUser):
@@ -159,10 +162,10 @@ class FakeUser(websocket_client.DefaultUser):
         return done
 
 
-def run():
+def main():
 
     creation.create_test_user(
-        challenge_accepted=True,
+        challenge_accepted=False,
         starting_date=STARTING_DATE,
         n_day=N_DAY,
         n_challenge=N_CHALLENGES_PER_DAY,
@@ -177,28 +180,7 @@ def run():
         challenge_window=CHALLENGE_WINDOW,
         challenge_duration=CHALLENGE_DURATION
     )
-    fake_user = FakeUser()
-    websocket_client.run_bot(url=URL, user=fake_user)
 
-
-def plot_day_progression():
-
-    u = User.objects.filter(username=USERNAME).first()
-    step_events, _ = read_activities_and_extract_step_events(u=u)
-    cum_steps = step_events_to_cumulative_steps(
-        step_events=step_events,
-        timestep=TIMESTEP
-    )
-    af_run = {
-        "position": cum_steps
-    }
-    plot.plot_day_progression(af_run)
-
-
-def main():
-
-    run()
-    plot_day_progression()
 
 
 if __name__ == "__main__":
