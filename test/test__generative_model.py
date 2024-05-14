@@ -1,20 +1,16 @@
-#%%
 import os
-import pandas as pd
-
-from test.assistant_model.run import test_assistant_model
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE",
                       "MAppServer.settings")
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
-from MAppServer.settings import TIME_ZONE
 
 import numpy as np
 
+from MAppServer.settings import TIME_ZONE
 from test.generative_model.core import generative_model
 from test.plot import plot
 from test.baseline import baseline
+from test.assistant_model.run import test_assistant_model
 from test.assistant_model.action_plan_generation import get_possible_action_plans, get_challenges
 from test.config.config import (
     USER, DATA_FOLDER, TIMESTEP, POSITION,

@@ -6,7 +6,7 @@ from pytz import timezone
 
 from MAppServer.settings import TIME_ZONE
 
-URL = "wss://ea4e-130-209-252-154.ngrok-free.app/ws"    # "ws://127.0.0.1:8080/ws"
+URL = "wss://samoa.dcs.gla.ac.uk/mapp/ws"  # "wss://ea4e-130-209-252-154.ngrok-free.app/ws"    # "ws://127.0.0.1:8080/ws"
 USERNAME = "123test"
 INIT_STATE = "experimentNotStarted"
 # WHen things will start
@@ -64,6 +64,8 @@ N_DAY = N_EPISODES
 # --------------------------------------
 INIT_POS_IDX = np.absolute(POSITION).argmin()  # Something close to 0
 # print ---------------------------------
+LOG_DIR = "logs"
+FILE_LOGGING = True
 LOG_AT_EACH_EPISODE = False
 LOG_AT_EACH_TIMESTEP = False
 LOG_PSEUDO_COUNT_UPDATE = False

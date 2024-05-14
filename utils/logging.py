@@ -1,11 +1,17 @@
 import logging
 import sys
+import os
 
 import colorlog
+
+from test.config.config import LOG_DIR, FILE_LOGGING
 
 
 def get(name: str, level=logging.INFO) -> logging.Logger:
     """Get the logger for the module name."""
+
+    os.makedirs(LOG_DIR, exist_ok=True)
+
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
@@ -32,8 +38,11 @@ def get(name: str, level=logging.INFO) -> logging.Logger:
         # Add ch to logger
         logger.addHandler(ch)
 
-    return logger
+        # Add file handler
+        if FILE_LOGGING:
+            logger.addHandler(logging.FileHandler(f"{LOG_DIR}/{name}.log"))
 
+    return logger
 
 
 def main():
@@ -46,7 +55,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
