@@ -188,6 +188,11 @@ Remove the db
     
     sudo systemctl status daphne.service
     sudo systemctl status apache2.service
+
+
+* re-start the services
+    
+      sudo supervisorctl restart all
     
     
 ### Build Unity
