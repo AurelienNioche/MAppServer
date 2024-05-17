@@ -1,10 +1,9 @@
 import logging
 import sys
 import os
-
 import colorlog
 
-from test.config.config import LOG_DIR, FILE_LOGGING
+from MAppServer.settings import LOG_DIR, FILE_LOGGING
 
 
 def get(name: str, level=logging.INFO) -> logging.Logger:

@@ -1,6 +1,4 @@
 import numpy as np
-import scipy.stats as stats
-from datetime import datetime, time
 from glob import glob
 import pandas as pd
 
@@ -8,13 +6,12 @@ from .nudge_effect import generate_nudge_effect
 from .fit import fit_model
 from .sample import sample
 
-from test.activity.activity import (
+from core.activity import (
     normalize_last_dim,
     extract_step_events,
     build_pseudo_count_matrix,
     step_events_to_cumulative_steps
 )
-SECONDS_IN_DAY = 86400
 
 
 def load_data(
@@ -63,11 +60,9 @@ def generate_observations(
 def generative_model(
         user,
         data_path,
-        timestep,
         n_samples,
         child_models_n_components,
         pseudo_count_jitter,
-        position,
         action_plans,
         seed
 ) -> np.ndarray:
@@ -86,13 +81,9 @@ def generative_model(
         n_samples=n_samples,
     )
     # Compute the cumulative steps
-    cum_steps_without_nudging = step_events_to_cumulative_steps(
-        step_events=step_events,
-        timestep=timestep
-    )
+    cum_steps_without_nudging = step_events_to_cumulative_steps(step_events=step_events)
     # Generate the nudge effect
     nudge_effect = generate_nudge_effect(
-        timestep=timestep,
         action_plans=action_plans,
         seed=seed
     )
@@ -107,8 +98,6 @@ def generative_model(
     pseudo_counts = build_pseudo_count_matrix(
         actions=actions,
         cum_steps=cum_steps,
-        position=position,
-        timestep=timestep,
         jitter=pseudo_count_jitter
     )
     # Compute expected probabilities

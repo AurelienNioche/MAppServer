@@ -8,7 +8,18 @@ from datetime import datetime, timedelta
 import uuid
 import pytz
 
-from MAppServer.settings import TIME_ZONE
+from MAppServer.settings import (
+    TIME_ZONE,
+    N_DAY,
+    N_CHALLENGES_PER_DAY,
+    OBJECTIVE,
+    REWARD,
+    INIT_STATE,
+    CHALLENGE_WINDOW,
+    CHALLENGE_DURATION,
+    OFFER_WINDOW,
+    BASE_CHEST_AMOUNT
+)
 from user.models import User, Challenge, Status
 
 
@@ -19,18 +30,9 @@ def generate_uuid():
 @transaction.atomic
 def create_test_user(
         starting_date: str,
-        n_day: int,
-        n_challenge: int,
-        objective: int or float,
-        amount: int or float,
-        base_chest_amount: int or float,
         username: str,
-        init_state: str,
+        first_challenge_offer: int or float,
         experiment_name:  str,
-        first_challenge_offer: str,
-        offer_window: int or float,
-        challenge_window: int or float,
-        challenge_duration: int or float,
         challenge_accepted=False):
 
     print("-" * 100)
@@ -45,9 +47,9 @@ def create_test_user(
     dt_first_challenge_offer = datetime.strptime(first_challenge_offer, "%H:%M")
     dt_first_challenge_offer = pytz.timezone(TIME_ZONE).localize(dt_first_challenge_offer)
 
-    offer_window = timedelta(hours=offer_window)
-    challenge_duration = timedelta(hours=challenge_duration)
-    challenge_window = timedelta(hours=challenge_window)
+    offer_window = timedelta(hours=OFFER_WINDOW)
+    challenge_duration = timedelta(hours=CHALLENGE_DURATION)
+    challenge_window = timedelta(hours=CHALLENGE_WINDOW)
 
     print("Starting date:", starting_date)
     # ---------------------------------------------------------------
@@ -62,7 +64,7 @@ def create_test_user(
         username=username,
         experiment=experiment_name,
         starting_date=starting_date,
-        base_chest_amount=base_chest_amount,
+        base_chest_amount=BASE_CHEST_AMOUNT,
     )
 
     if u is not None:
@@ -71,7 +73,7 @@ def create_test_user(
     else:
         raise ValueError("Something went wrong! User not created.")
 
-    s = Status.objects.create(user=u, state=init_state)
+    s = Status.objects.create(user=u, state=INIT_STATE)
     if s is not None:
         print(f"Status successfully created for user {u.username}.")
         print("-" * 20)
@@ -82,9 +84,9 @@ def create_test_user(
     # Create challenges
 
     current_date = starting_date
-    for _ in range(n_day):
+    for _ in range(N_DAY):
         current_time = dt_first_challenge_offer
-        for ch_t in range(n_challenge):
+        for ch_t in range(N_CHALLENGES_PER_DAY):
 
             dt_offer_begin = datetime(
                 current_date.year, current_date.month, current_date.day,
@@ -110,8 +112,8 @@ def create_test_user(
                 dt_latest=dt_latest,
                 dt_begin=dt_begin,
                 dt_end=dt_end,
-                objective=objective,
-                amount=amount,
+                objective=OBJECTIVE,
+                amount=REWARD,
                 android_tag=random_uuid,
                 server_tag=random_uuid,
                 accepted=challenge_accepted,
@@ -122,7 +124,6 @@ def create_test_user(
         current_date += timedelta(days=1)
 
     print(f"Challenges successfully created for user {u.username}.")
-    # print(f"Last challenge ends at: {dt_end}.")
     print("-" * 100)
     print("Test user creation completed successfully.")
     print("-" * 100)

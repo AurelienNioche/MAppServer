@@ -1,39 +1,34 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime, time
-
-from django.db import transaction
 from pytz import timezone
 import uuid
+from django.db import transaction
 import django.db.models
 
-from MAppServer.settings import TIME_ZONE
-from assistant.models import User, ActionPlan
-
-from test.config.config import (
-    TIMESTEP, POSITION, GAMMA, LOG_PRIOR,
-    HEURISTIC, ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER, SEED_ASSISTANT,
-    INIT_POS_IDX
+from MAppServer.settings import (
+    TIMESTEP,
+    POSITION,
+    HEURISTIC,
+    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
+    SEED_ASSISTANT,
+    INIT_POS_IDX,
+    TIME_ZONE
 )
-from test.test__generative_model import get_possible_action_plans
-from test.assistant_model.action_plan_selection import select_action_plan
-from test.activity.activity import (
+from assistant.models import User, ActionPlan
+from core.action_plan_selection import select_action_plan
+from core.action_plan_generation import get_possible_action_plans
+from core.activity import (
     step_events_to_cumulative_steps,
-    get_timestep, get_datetime_from_timestep,
-    extract_actions, extract_step_events,
+    extract_actions,
+    extract_step_events,
     build_pseudo_count_matrix
 )
-
-
-SEC_IN_DAY = 86400
+from core.timestep_and_datetime import get_datetime_from_timestep, get_timestep_from_datetime
 
 
 def generate_uuid():
     return str(uuid.uuid4())
-
-
-def local(dt: datetime) -> datetime:
-    return dt.astimezone(timezone(TIME_ZONE))
 
 
 def read_activities_and_extract_step_events(
@@ -67,11 +62,10 @@ def get_future_challenges(
 def get_current_position_and_velocity(
         u: User,
         now: datetime,
-        timestep: np.ndarray
 ) -> tuple:
     """Get the current position and velocity of the user"""
     # Get the current timestep
-    t_idx = get_timestep(now, timestep=timestep)
+    t_idx = get_timestep_from_datetime(now)
     # Manage the case where there is no activity/we are at the start of the day
     if t_idx == 0:
         return INIT_POS_IDX, t_idx
@@ -86,13 +80,14 @@ def get_current_position_and_velocity(
     return pos_idx, t_idx
 
 
-def update_challenges_based_on_action_plan(action_plan, now, later_challenges, timestep):
+def update_challenges_based_on_action_plan(action_plan, now, later_challenges):
     """Update the challenges based on the action plan"""
-    t_idx = get_timestep(now, timestep=timestep)
+    t_idx = get_timestep_from_datetime(now)
     t_selected = t_idx + np.argwhere(action_plan == 1).flatten()
     action_plan__datetime = [
-        get_datetime_from_timestep(t, timestep=timestep, now=now)
-        for t in t_selected]
+        get_datetime_from_timestep(t, now=now)
+        for t in t_selected
+    ]
 
     for ch, dt in zip(later_challenges, action_plan__datetime):
         challenge_delta = ch.dt_end - ch.dt_begin
@@ -106,9 +101,7 @@ def update_beliefs_and_challenges(
         u: User,
         now: str = None
 ):
-    """
-    Update the beliefs concerning the user and update the challenges accordingly
-    """
+    """Update the beliefs concerning the user and update the challenges accordingly."""
     if now is None:
         now = datetime.now(tz=timezone(TIME_ZONE))
     else:
@@ -119,9 +112,6 @@ def update_beliefs_and_challenges(
     if ap is not None:
         # print("Decision already taken")
         return
-
-    # Get the current timestep
-    t_idx = get_timestep(now)
 
     # Get later challenges
     later_challenges = get_future_challenges(u, now)
@@ -139,10 +129,7 @@ def update_beliefs_and_challenges(
         day_idx_now = (now.date() - min_date).days
         # TODO: It will probably be suitable to discard the first day to avoid
         #      to bias the inferences
-        cum_steps = step_events_to_cumulative_steps(
-            step_events=step_events,
-            timestep=TIMESTEP
-        )
+        cum_steps = step_events_to_cumulative_steps(step_events=step_events)
         n_days_act = cum_steps.shape[0]
         if day_idx_now < n_days_act:
             cum_steps = cum_steps[:day_idx_now]  # Exclude today
@@ -151,27 +138,22 @@ def update_beliefs_and_challenges(
 
     pos_idx, t_idx = get_current_position_and_velocity(
         u=u,
-        now=now,
-        timestep=TIMESTEP
+        now=now
     )
     actions = extract_actions(
-        u=u,
-        timestep=TIMESTEP,
+        u=u
     )
     actions = np.atleast_2d(actions)
     pseudo_counts = build_pseudo_count_matrix(
         cum_steps=cum_steps,
         actions=actions,
-        timestep=TIMESTEP,
-        jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
-        position=POSITION
+        jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER
     )
     # Get the challenges for today
     today_challenges = u.challenge_set.filter(dt_begin__date=now.date())
     # Get the possible action plans
     action_plans_including_past, action_plans = get_possible_action_plans(
         challenges=today_challenges,
-        timestep=TIMESTEP,
         u=u,
         now=now
     )
@@ -186,11 +168,7 @@ def update_beliefs_and_challenges(
             pseudo_counts=pseudo_counts,
             pos_idx=pos_idx,
             t_idx=t_idx,
-            action_plans=action_plans,
-            log_prior_position=LOG_PRIOR,
-            gamma=GAMMA,
-            position=POSITION,
-            seed=SEED_ASSISTANT
+            action_plans=action_plans
         )
         # Get the action plan based on the index
         action_plan = action_plans[action_plan_idx]
@@ -202,8 +180,7 @@ def update_beliefs_and_challenges(
     update_challenges_based_on_action_plan(
         action_plan=action_plan,
         now=now,
-        later_challenges=later_challenges,
-        timestep=TIMESTEP
+        later_challenges=later_challenges
     )
     with transaction.atomic():
         ActionPlan.objects.create(user=u, date=now.date(), value=list(action_plan))

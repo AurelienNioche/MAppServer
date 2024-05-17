@@ -13,61 +13,47 @@ from pytz import timezone
 import json
 import numpy as np
 
-from assistant.tasks import read_activities_and_extract_step_events
-from test.assistant_model.action_plan_selection import make_a_step
-from test.plot import plot
-
-from MAppServer.settings import TIME_ZONE
-from user.models import User
-from test.user_simulation import creation
-from test.user_simulation import websocket_client
-from test.generative_model.core import generative_model
-from test.activity.activity import get_timestep, extract_actions, step_events_to_cumulative_steps
-from test.assistant_model.action_plan_generation import get_possible_action_plans
-from test.assistant_model.action_plan_generation import get_challenges
-
-from test.config.config import (
-    TIMESTEP, POSITION, N_DAY, N_CHALLENGES_PER_DAY, OFFER_WINDOW, OBJECTIVE, AMOUNT,
-    BASE_CHEST_AMOUNT, USERNAME, INIT_STATE, EXPERIMENT_NAME, FIRST_CHALLENGE_OFFER,
-    CHALLENGE_WINDOW, CHALLENGE_DURATION, STARTING_DATE, URL, NOW,
-    USER, DATA_FOLDER, N_SAMPLES, CHILD_MODELS_N_COMPONENTS,
-    GENERATIVE_MODEL_PSEUDO_COUNT_JITTER, SEED_GENERATIVE_MODEL, SEED_RUN,
+from MAppServer.settings import (
+    TIME_ZONE,
+    POSITION, N_DAY, N_CHALLENGES_PER_DAY, OFFER_WINDOW, OBJECTIVE, AMOUNT,
+    BASE_CHEST_AMOUNT, TEST_USERNAME, INIT_STATE, TEST_EXPERIMENT_NAME, TEST_FIRST_CHALLENGE_OFFER,
+    CHALLENGE_WINDOW, CHALLENGE_DURATION, TEST_STARTING_DATE, TEST_NOW,
+    USER_FOR_GENERATIVE_MODEL, DATA_FOLDER, N_SAMPLES_FOR_GENERATIVE_MODEL, CHILD_MODELS_N_COMPONENTS,
+    GENERATIVE_MODEL_PSEUDO_COUNT_JITTER, SEED_GENERATIVE_MODEL, TEST_SEED_RUN,
     LOG_AT_EACH_EPISODE,
     LOG_AT_EACH_TIMESTEP,
     INIT_POS_IDX,
-    USE_PROGRESS_BAR)
+    USE_PROGRESS_BAR
+)
+from user.models import User
+from core.action_plan_selection import make_a_step
+from core.activity import extract_actions
+from core.timestep_and_datetime import get_timestep_from_datetime
+from core.action_plan_generation import get_possible_action_plans, get_challenges
+from test.user_simulation import creation, websocket_client
+from test.generative_model.core import generative_model
 
 
 class FakeUser(websocket_client.DefaultUser):
     def __init__(self):
-        super().__init__(username=USERNAME)
-        self.timestep = TIMESTEP
-        self.position = POSITION
+        super().__init__(username=TEST_USERNAME)
         self.pos_idx = INIT_POS_IDX
         self.n_steps = []
-        challenges = get_challenges(
-            start_time=FIRST_CHALLENGE_OFFER,
-            time_zone=TIME_ZONE,
-            challenge_window=CHALLENGE_WINDOW,
-            offer_window=OFFER_WINDOW,
-            n_challenges_per_day=N_CHALLENGES_PER_DAY
-        )
-        self.action_plans = get_possible_action_plans(challenges=challenges, timestep=TIMESTEP)
+        challenges = get_challenges(start_time=TEST_FIRST_CHALLENGE_OFFER)
+        self.action_plans = get_possible_action_plans(challenges=challenges)
         self.transition = generative_model(
             action_plans=self.action_plans,
-            user=USER,
+            user=USER_FOR_GENERATIVE_MODEL,
             data_path=DATA_FOLDER,
-            timestep=TIMESTEP,
-            n_samples=N_SAMPLES,
+            n_samples=N_SAMPLES_FOR_GENERATIVE_MODEL,
             child_models_n_components=CHILD_MODELS_N_COMPONENTS,
             pseudo_count_jitter=GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
-            position=POSITION,
             seed=SEED_GENERATIVE_MODEL
         )
-        self._now = NOW
+        self._now = TEST_NOW
         self.starting_date = self._now.date()
         self.android_id = 0
-        self.rng = np.random.default_rng(seed=SEED_RUN)
+        self.rng = np.random.default_rng(seed=TEST_SEED_RUN)
         self.u = User.objects.filter(username=self.username).first()
         self.init_done = False
         if USE_PROGRESS_BAR:
@@ -78,14 +64,12 @@ class FakeUser(websocket_client.DefaultUser):
 
     def update(self):
         # Extract variables
-        position = self.position
-        timestep = self.timestep
         transition = self.transition
         pos_idx = self.pos_idx
         now = self.now()
         rng = self.rng
         # Get timestep index
-        t_idx = get_timestep(now, timestep)
+        t_idx = get_timestep_from_datetime(now)
         if t_idx == 0 and not self.init_done:
             to_return = {
                 "now": now.strftime("%d/%m/%Y %H:%M:%S"),
@@ -94,15 +78,13 @@ class FakeUser(websocket_client.DefaultUser):
             self.init_done = True
             return to_return
         # Select action plan
-        action_plan = extract_actions(
-            u=self.u, timestep=timestep,
-            now=now
-        )
+        action_plan = extract_actions(u=self.u, now=now)
         # Log stuff
         # Compute the number of day
         n_days = (now.date() - self.starting_date).days
         if LOG_AT_EACH_EPISODE and t_idx == 0:
             # {self.position[self.pos_idx]} steps done.
+            # noinspection PyUnresolvedReferences
             action_plan_idx = np.where((self.action_plans == action_plan).all(axis=1))[0][0]
             print("-" * 100)
             print(f"restart #0 - episode #{n_days} - policy #{action_plan_idx}")
@@ -114,7 +96,6 @@ class FakeUser(websocket_client.DefaultUser):
             t_idx=t_idx,
             policy=action_plan,
             pos_idx=pos_idx,
-            position=position,
             transition=transition,
             rng=rng
         )
@@ -123,9 +104,9 @@ class FakeUser(websocket_client.DefaultUser):
         # Increment time
         self.increment_time_and_reset_if_end_of_day()
         # Send the shite
-        step_midnight = position[new_pos_idx]
-        if LOG_AT_EACH_TIMESTEP:
-            print(f"t_idx {t_idx:02} now", self.now(), "new_pos_idx", new_pos_idx, "n_steps", step_midnight)
+        step_midnight = POSITION[new_pos_idx]
+        # if LOG_AT_EACH_TIMESTEP:
+        #     print(f"t_idx {t_idx:02} now", self.now(), "new_pos_idx", new_pos_idx, "n_steps", step_midnight)
 
         ts = self.to_timestamp(self.now())
         if t_idx == 23:
@@ -166,21 +147,11 @@ def main():
 
     creation.create_test_user(
         challenge_accepted=False,
-        starting_date=STARTING_DATE,
-        n_day=N_DAY,
-        n_challenge=N_CHALLENGES_PER_DAY,
-        offer_window=OFFER_WINDOW,
-        objective=OBJECTIVE,
-        amount=AMOUNT,
-        base_chest_amount=BASE_CHEST_AMOUNT,
-        username=USERNAME,
-        init_state=INIT_STATE,
-        experiment_name=EXPERIMENT_NAME,
-        first_challenge_offer=FIRST_CHALLENGE_OFFER,
-        challenge_window=CHALLENGE_WINDOW,
-        challenge_duration=CHALLENGE_DURATION
+        starting_date=TEST_STARTING_DATE,
+        username=TEST_USERNAME,
+        experiment_name=TEST_EXPERIMENT_NAME,
+        first_challenge_offer=TEST_FIRST_CHALLENGE_OFFER,
     )
-
 
 
 if __name__ == "__main__":

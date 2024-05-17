@@ -6,43 +6,42 @@ application = get_wsgi_application()
 
 import numpy as np
 
-from MAppServer.settings import TIME_ZONE
+from utils import logging
+from core.action_plan_generation import get_possible_action_plans, get_challenges
+from MAppServer.settings import (
+    USER_FOR_GENERATIVE_MODEL,
+    DATA_FOLDER,
+    TIMESTEP,
+    POSITION,
+    GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
+    N_SAMPLES_FOR_GENERATIVE_MODEL,
+    CHILD_MODELS_N_COMPONENTS,
+    TEST_N_RESTART,
+    TEST_FIRST_CHALLENGE_OFFER,
+    SEED_GENERATIVE_MODEL,
+    TEST_SEED_RUN
+)
 from test.generative_model.core import generative_model
 from test.plot import plot
-from test.baseline import baseline
-from test.assistant_model.run import test_assistant_model
-from test.assistant_model.action_plan_generation import get_possible_action_plans, get_challenges
-from test.config.config import (
-    USER, DATA_FOLDER, TIMESTEP, POSITION,
-    GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
-    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
-    N_SAMPLES, CHILD_MODELS_N_COMPONENTS, LOG_PRIOR,
-    N_RESTART, N_EPISODES, CHALLENGE_WINDOW, OFFER_WINDOW, N_CHALLENGES_PER_DAY, FIRST_CHALLENGE_OFFER,
-    SEED_GENERATIVE_MODEL, SEED_RUN, SEED_ASSISTANT, GAMMA
-)
+from test.run import baseline
+from test.run.assistant_model import test_assistant_model
+
+LOGGER = logging.get(__name__)
 
 
 def main():
     # Generate the challenges
-    challenges = get_challenges(
-        time_zone=TIME_ZONE,
-        challenge_window=CHALLENGE_WINDOW,
-        offer_window=OFFER_WINDOW,
-        n_challenges_per_day=N_CHALLENGES_PER_DAY,
-        start_time=FIRST_CHALLENGE_OFFER
-    )
+    challenges = get_challenges(start_time=TEST_FIRST_CHALLENGE_OFFER)
     # Generate the action plans
-    action_plans = get_possible_action_plans(challenges=challenges, timestep=TIMESTEP)
+    action_plans = get_possible_action_plans(challenges=challenges)
     # Generate the transition model
     transition = generative_model(
         action_plans=action_plans,
-        user=USER,
+        user=USER_FOR_GENERATIVE_MODEL,
         data_path=DATA_FOLDER,
-        n_samples=N_SAMPLES,
+        n_samples=N_SAMPLES_FOR_GENERATIVE_MODEL,
         child_models_n_components=CHILD_MODELS_N_COMPONENTS,
         pseudo_count_jitter=GENERATIVE_MODEL_PSEUDO_COUNT_JITTER,
-        timestep=TIMESTEP,
-        position=POSITION,
         seed=SEED_GENERATIVE_MODEL
     )
     # Run the baseline
@@ -51,8 +50,8 @@ def main():
         transition=transition,
         timestep=TIMESTEP,
         position=POSITION,
-        n_restart=N_RESTART,
-        seed=SEED_RUN
+        n_restart=TEST_N_RESTART,
+        seed=TEST_SEED_RUN
     )
     # Compute performance of each action plan
     performance = [
@@ -62,22 +61,13 @@ def main():
     idx = np.argsort(performance)[::-1]
     sorted_action_plans = action_plans[idx]
     for i, ap in enumerate(sorted_action_plans):
-        print(f"#{i}: AP{idx[i]} {ap} with performance {performance[idx[i]]:.2f}")
+        LOGGER.info(f"#{i}: AP{idx[i]} {ap} with performance {performance[idx[i]]:.2f}")
     # Plot the runs
     plot.runs(*runs)
     # print("running the assistant model")
     af_run = test_assistant_model(
         action_plans=action_plans,
-        log_prior_position=LOG_PRIOR,
-        gamma=GAMMA,
-        n_episodes=N_EPISODES,
-        alpha_jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER,
-        position=POSITION,
-        transition=transition,
-        timestep=TIMESTEP,
-        n_restart=N_RESTART,
-        seed_run=SEED_RUN,
-        seed_assistant=SEED_ASSISTANT
+        transition=transition
     )
     # Record the run
     runs.append(af_run)

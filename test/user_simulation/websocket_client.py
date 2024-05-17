@@ -10,7 +10,7 @@ import json
 import websocket
 from datetime import datetime, timedelta
 
-from MAppServer.settings import APP_VERSION
+from MAppServer.settings import APP_VERSION, WEBSOCKET_URL
 from user.models import User
 
 
@@ -60,12 +60,12 @@ class Bot(websocket.WebSocketApp):
 
     def __init__(
         self,
-        url,
         user,
         username,
     ):
+        # noinspection PyTypeChecker
         super().__init__(
-            url,
+            WEBSOCKET_URL,
             on_message=self.on_message,
             on_error=self.on_error,
             on_close=self.on_close,
@@ -85,12 +85,14 @@ class Bot(websocket.WebSocketApp):
         f = getattr(ws, f"after_{subject}")
         f(msg)
 
+    # noinspection PyUnusedLocal
     @staticmethod
     def on_error(ws, error):
         print("I encountered an error.")
         print(traceback.print_exc())
         raise Exception(f"I encountered an error: {error}")
 
+    # noinspection PyUnusedLocal
     @staticmethod
     def on_close(ws, close_status_code, close_msg):
         # print(f"I'm closing.")
@@ -139,6 +141,7 @@ class Bot(websocket.WebSocketApp):
         message.update(self.user.update())
         self.send_message(message)
 
+    # noinspection PyUnusedLocal
     def after_update(self, msg):
         # print("Update done!")
         if self.user.done():
@@ -148,7 +151,7 @@ class Bot(websocket.WebSocketApp):
             self.update()
 
 
-def run_bot(url="ws://127.0.0.1:8080/ws", user=None, username=None):
+def run_bot(user=None, username=None):
     websocket.enableTrace(False)
-    bot = Bot(url=url, user=user, username=username)
+    bot = Bot(user=user, username=username)
     bot.run_forever()

@@ -65,6 +65,7 @@ def fit_parent_model(
         for n_components in n_components_range_beta
     ]
     # Compute the BIC scores
+    # noinspection PyUnresolvedReferences
     all_beta_scores = [_gmm.bic(x) for _gmm in all_beta_gmm]
     # Choose the best model
     best_beta_idx = np.argmin(all_beta_scores)

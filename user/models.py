@@ -2,9 +2,6 @@ from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils import timezone
 
-import datetime
-
-
 # Utils -----------------------------------------------------------------------
 
 def snake_to_camel(snake_str):
@@ -16,14 +13,6 @@ def convert_datetime_to_android_timestamp(dt):
     if dt is None:
         return -1
     return int(dt.timestamp() * 1000)
-
-
-def convert_date_to_android_timestamp(date):
-    if date is None:
-        return -1
-    # Take midday as timestamp
-    ts_python = datetime.datetime.fromordinal(date.toordinal()) + datetime.timedelta(days=0.5)
-    return convert_datetime_to_android_timestamp(ts_python)
 
 
 def to_csv_row(obj):
@@ -114,6 +103,8 @@ class Challenge(models.Model):
     # Server tag/android tag to manage the synchronization
     server_tag = models.CharField(default=None, null=True, max_length=256)
     android_tag = models.CharField(default=None, null=True, max_length=256)
+    # Mutable by the assistant
+    mutable = models.BooleanField(default=True)
 
     # Set after interaction with the user -------------------------------
     # Whether the challenge has been accepted by the user

@@ -156,7 +156,7 @@ def error(*args, fig=None, ax=None, ylabel="error", var="error"):
     fig.tight_layout()
 
 
-def error_like(variable="error", *args):
+def plot_error_like(variable="error", *args):
     fig, ax = plt.subplots(figsize=(3, 3))
     for i, r in enumerate(args):
         policy = r["policy"]

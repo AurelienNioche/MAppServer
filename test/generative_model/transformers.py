@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
-from scipy.special import inv_boxcox, boxcox, logit, expit as sigmoid
+from scipy.special import inv_boxcox, logit, expit as sigmoid
 
 
 class StepTransformer:
@@ -17,8 +17,8 @@ class StepTransformer:
         return self.transform(step_events)
 
     def _transform(self, step_events):
-        X = np.asarray(step_events).reshape(-1, 1)
-        return stats.boxcox(self.step_scaler.transform(logit(X)).flatten(), lmbda=self.lambda_param)
+        x = np.asarray(step_events).reshape(-1, 1)
+        return stats.boxcox(self.step_scaler.transform(logit(x)).flatten(), lmbda=self.lambda_param)
 
     def _inv_transform(self, transformed):
         return sigmoid(self.step_scaler.inverse_transform(inv_boxcox(transformed, self.lambda_param).reshape(-1, 1)).flatten())

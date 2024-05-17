@@ -18,6 +18,7 @@ def parse_date(dump_name):
 def load_backup_table(model):
 
     files = glob(f'data/{model.__name__}_*.dump').sort()
+    # noinspection PyTypeChecker
     file_to_take = sorted(files, key=lambda x: parse_date(x), reverse=True)[0]
 
     command = \
@@ -28,6 +29,7 @@ def load_backup_table(model):
 
 def backup_table(model):
 
+    # noinspection PyProtectedMember
     command = \
         f'pg_dump -Fc --column-inserts --data-only ' \
         f'--table {model._meta.db_table} ' \

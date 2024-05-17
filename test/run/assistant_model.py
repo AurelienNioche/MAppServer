@@ -1,59 +1,49 @@
 import numpy as np
 from tqdm import tqdm
 
-from test.config.config import (
-    INIT_POS_IDX, LOG_AT_EACH_EPISODE, LOG_PSEUDO_COUNT_UPDATE,
-    USE_PROGRESS_BAR)
-from .action_plan_selection import select_action_plan, normalize_last_dim, make_a_step
+from MAppServer.settings import (
+    INIT_POS_IDX,
+    LOG_AT_EACH_EPISODE,
+    LOG_PSEUDO_COUNT_UPDATE,
+    USE_PROGRESS_BAR,
+    TIMESTEP,
+    POSITION,
+    GAMMA,
+    N_DAY,
+    TEST_N_RESTART,
+    TEST_SEED_RUN,
+    ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER
+)
+from core.action_plan_selection import select_action_plan, normalize_last_dim, make_a_step
+from core.activity import initialize_pseudo_counts
 
 
 def test_assistant_model(
-        position,
-        timestep,
-        n_episodes,
-        n_restart,
-        alpha_jitter,
         transition,
-        action_plans,
-        log_prior_position,
-        gamma,
-        seed_assistant,
-        seed_run
+        action_plans
 ):
     # Seed for reproducibility
-    rng = np.random.default_rng(seed=seed_run)
+    rng = np.random.default_rng(seed=TEST_SEED_RUN)
     # Initialize history
-    hist_err = np.zeros((n_restart, n_episodes*timestep.size))
-    hist_pos = np.zeros((n_restart, n_episodes, timestep.size+1))
-    hist_epistemic = np.zeros((n_restart, n_episodes, len(action_plans)))
+    hist_err = np.zeros((TEST_N_RESTART, N_DAY*TIMESTEP.size))
+    hist_pos = np.zeros((TEST_N_RESTART, N_DAY, TIMESTEP.size+1))
+    hist_epistemic = np.zeros((TEST_N_RESTART, N_DAY, len(action_plans)))
     hist_pragmatic = np.zeros_like(hist_epistemic)
-    # Number of actions
-    n_action = np.unique(action_plans).size
     # Run the model
-    for sample in range(n_restart):
-        # print("-"*80)
-        # print(f"sample {sample}")
-        # print("-"*80)
+    for sample in range(TEST_N_RESTART):
         # Initialize alpha
-        pseudo_counts = np.zeros((n_action, timestep.size, position.size, position.size))
-        # Add jitter
-        # TODO: only in the upper triangle
-        pseudo_counts += alpha_jitter
+        pseudo_counts = initialize_pseudo_counts(jitter=ACTIVE_INFERENCE_PSEUDO_COUNT_JITTER)
         epoch = 0
-        _iter = range(n_episodes)
+        _iter = range(N_DAY)
         if USE_PROGRESS_BAR:
             _iter = tqdm(_iter)
         for ep_idx in _iter:
             # Select action plan
             action_plan_idx, pr_value, ep_value = select_action_plan(
-                log_prior_position=log_prior_position,
-                gamma=gamma,
-                position=position,
                 pseudo_counts=pseudo_counts,
                 pos_idx=INIT_POS_IDX,
                 t_idx=0,
-                action_plans=action_plans,
-                seed=seed_assistant
+                action_plans=action_plans
             )
             # Record values
             hist_epistemic[sample, ep_idx] = ep_value
@@ -66,15 +56,14 @@ def test_assistant_model(
             # Run the policy
             pos_idx = INIT_POS_IDX
             # Going through the policy
-            for t_idx in range(timestep.size):
+            for t_idx in range(TIMESTEP.size):
                 # Record position and velocity
-                hist_pos[sample, ep_idx, t_idx] = position[pos_idx]
+                hist_pos[sample, ep_idx, t_idx] = POSITION[pos_idx]
                 # Make a step
                 action, new_pos_idx = make_a_step(
                     policy=policy,
                     t_idx=t_idx,
                     pos_idx=pos_idx,
-                    position=position,
                     transition=transition,
                     rng=rng
                 )
@@ -89,10 +78,10 @@ def test_assistant_model(
                 error = np.mean(np.absolute(transition - normalize_last_dim(pseudo_counts)))
                 hist_err[sample, epoch] = error
             # Record the last position
-            hist_pos[sample, ep_idx, -1] = position[pos_idx]
+            hist_pos[sample, ep_idx, -1] = POSITION[pos_idx]
             epoch += 1
     return {
-            "gamma": gamma,
+            "gamma": GAMMA,
             "policy": "af",
             "error": hist_err,
             "epistemic": hist_epistemic,
