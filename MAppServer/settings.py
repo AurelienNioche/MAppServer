@@ -156,9 +156,9 @@ OBJECTIVE = 10
 # Amount of reward (in pounds) for each challenge completed
 AMOUNT = 3
 OFFER_WINDOW = 1           # in hours  #TODO: Change to 2
-CHALLENGE_WINDOW = 3      # in hours
+CHALLENGE_WINDOW = 2      # in hours   #TODO: Change to 12
 CHALLENGE_DURATION = 1     # in hours  #TODO: Change to 3
-N_CHALLENGES_PER_DAY = 1
+N_CHALLENGES_PER_DAY = 3               #TODO: Change to 1
 DISCARD_OVERLAPPING_STRATEGIES = True
 N_DAY = 30
 N_TIMESTEP = 24

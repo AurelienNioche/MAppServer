@@ -104,7 +104,7 @@ class Challenge(models.Model):
     server_tag = models.CharField(default=None, null=True, max_length=256)
     android_tag = models.CharField(default=None, null=True, max_length=256)
     # Mutable by the assistant
-    mutable = models.BooleanField(default=True)
+    # mutable = models.BooleanField(default=True)
 
     # Set after interaction with the user -------------------------------
     # Whether the challenge has been accepted by the user
