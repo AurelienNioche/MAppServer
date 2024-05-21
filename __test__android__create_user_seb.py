@@ -10,7 +10,7 @@ def main():
 
     creation.create_test_user(
         challenge_accepted=False,
-        starting_date="18/05/2024",
+        starting_date="22/05/2024",
         username="sebastian",
         experiment_name="alpha-testing",
         first_challenge_offer="7:00",
